@@ -5,6 +5,9 @@
 #ifndef BPLUSTREE_CONTAINER_HPP
 #define BPLUSTREE_CONTAINER_HPP
 
+#include <cassert>
+#include <cstring>
+
 template<typename U>
 struct Allocator {
     U *allocate(unsigned size) { return (U *) ::operator new(sizeof(U) * size); }
@@ -29,7 +32,7 @@ public:
         x = a.allocate(capacity());
     }
 
-    ~Vector() {
+    virtual ~Vector() {
         for (int i = 0; i < size; i++) a.destruct(&x[i]);
         a.deallocate(x);
     }

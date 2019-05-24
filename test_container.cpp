@@ -24,7 +24,7 @@ int TestClass::destruct_cnt = 0;
 
 TEST_CASE("Vector", "[Vector]") {
 
-    SECTION("Vector should save data") {
+    SECTION("should save data") {
         Vector<int, 8> v;
         v.append(1);
         v.append(2);
@@ -44,7 +44,7 @@ TEST_CASE("Vector", "[Vector]") {
         REQUIRE (v[7] == 8);
     }
 
-    SECTION("Vector should save data without default constructor", "[Vector]") {
+    SECTION("should save data without default constructor", "[Vector]") {
         TestClass::construct_cnt = 0;
         TestClass::destruct_cnt = 0;
         {
@@ -71,7 +71,7 @@ TEST_CASE("Vector", "[Vector]") {
         REQUIRE (TestClass::destruct_cnt == 16);
     }
 
-    SECTION("Vector should insert", "[Vector]") {
+    SECTION("should insert", "[Vector]") {
         Vector<int, 8> v;
         v.append(2);
         v.append(4);
@@ -87,7 +87,7 @@ TEST_CASE("Vector", "[Vector]") {
         REQUIRE (v[5] == 7);
     }
 
-    SECTION("Vector should pop", "[Vector]") {
+    SECTION("should pop", "[Vector]") {
         Vector<int, 8> v;
         v.append(2);
         v.append(4);
@@ -97,7 +97,7 @@ TEST_CASE("Vector", "[Vector]") {
         REQUIRE (v[1] == 4);
     }
 
-    SECTION("Vector should move from", "[Vector]") {
+    SECTION("should move from", "[Vector]") {
         Vector<int, 8> v;
         Vector<int, 8> b;
         v.append(1);
@@ -119,7 +119,7 @@ TEST_CASE("Vector", "[Vector]") {
         REQUIRE (b.size == 3);
     }
 
-    SECTION("Vector should remove", "[Vector]") {
+    SECTION("should remove", "[Vector]") {
         Vector<int, 8> v;
         v.append(1);
         v.append(2);
@@ -144,7 +144,7 @@ TEST_CASE("Vector", "[Vector]") {
         REQUIRE (v.size == 2);
     }
 
-    SECTION("Vector should remove data without default constructor", "[Vector]") {
+    SECTION("should remove data without default constructor", "[Vector]") {
         TestClass::construct_cnt = 0;
         TestClass::destruct_cnt = 0;
         {
@@ -166,7 +166,7 @@ TEST_CASE("Vector", "[Vector]") {
 
 TEST_CASE("Set", "[Set]") {
 
-    SECTION("Set should insert") {
+    SECTION("should insert") {
         Set<int, 8> s;
         s.insert(3);
         s.insert(5);
@@ -184,7 +184,7 @@ TEST_CASE("Set", "[Set]") {
         REQUIRE (s[6] == 5);
     }
 
-    SECTION("Set should calc bound") {
+    SECTION("should calc bound") {
         Set<int, 8> s;
         s.insert(1);
         s.insert(1);
