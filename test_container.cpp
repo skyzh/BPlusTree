@@ -162,6 +162,27 @@ TEST_CASE("Vector", "[Vector]") {
         REQUIRE (TestClass::construct_cnt == 16);
         REQUIRE (TestClass::destruct_cnt == 16);
     }
+
+    SECTION("should be serialized") {
+        const int test_num = 2333;
+        using V = Vector<int, test_num>;
+        char memory[V::Storage_Size()];
+        {
+            V data;
+            for (int i = 0; i < test_num; i++) {
+                data.append(i);
+            }
+            data.serialize(memory);
+        }
+        {
+            V data;
+            data.deserialize(memory);
+            REQUIRE(data.size == test_num);
+            for (int i = 0; i < test_num; i++) {
+                REQUIRE (data[i] == i);
+            }
+        }
+    }
 }
 
 TEST_CASE("Set", "[Set]") {

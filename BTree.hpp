@@ -28,7 +28,7 @@ public:
 
     class Storage;
 
-    struct Block {
+    struct Block : public Serializable {
         BlockIdx idx;
         Set<K, Order()> keys;
         Storage *storage;
@@ -46,6 +46,8 @@ public:
         bool should_split() const { return keys.size == Order(); }
 
         bool should_merge() const { return keys.size * 2 <= Order(); }
+
+
     };
 
     class Storage {
@@ -74,7 +76,7 @@ public:
 
         constexpr bool is_leaf() const override { return false; }
 
-        Index *split(K &k) {
+        Index *split(K &k) override {
             assert(this->should_split());
             Index *that = new Index;
             this->storage->record(that);
@@ -108,6 +110,31 @@ public:
             Block *block = this->storage->get(children[pos]);
             return block->find(k);
         }
+
+        static constexpr unsigned Storage_Size() {
+            return Set<K, Order()>::Storage_Size() + Vector<BlockIdx, Order() + 1>::Storage_Size();
+        }
+
+        unsigned storage_size() const override { return Storage_Size(); }
+
+        /*
+         * Storage Mapping
+         * | 8 size | Order() K keys |
+         * | 8 size | Order()+1 BlockIdx children |
+         */
+        void serialize(char *x) const override {
+            int blk = 0;
+            this->keys.serialize(x);              // VectorA
+            blk += this->keys.Storage_Size();
+            this->children.serialize(x + blk);    // VectorA + Vector B
+        };
+
+        void deserialize(const char *x) override {
+            int blk = 0;
+            this->keys.deserialize(x);            // VectorA
+            blk += this->keys.Storage_Size();
+            this->children.deserialize(x + blk);  // VectorA + Vector B
+        };
     };
 
     struct Leaf : public Block {
@@ -147,6 +174,40 @@ public:
             k = that->keys[0];
             return that;
         }
+
+        static constexpr unsigned Storage_Size() {
+            return Set<K, Order()>::Storage_Size() + Vector<V, Order()>::Storage_Size() + sizeof(BlockIdx) * 2;
+        }
+
+        unsigned storage_size() const override { return Storage_Size(); }
+
+        /*
+         * Storage Mapping
+         * | 8 BlockIdx prev | 8 BlockIdx next |
+         * | 8 size | Order() K keys |
+         * | 8 size | Order() V data |
+         */
+        void serialize(char *x) const override {
+            int blk = 0;
+            memcpy(x, &prev, sizeof(BlockIdx));         // 0
+            blk += sizeof(BlockIdx);
+            memcpy(x + blk, &next, sizeof(BlockIdx));   // 8
+            blk += sizeof(BlockIdx);
+            this->keys.serialize(x + blk);              // 8 + VectorA
+            blk += this->keys.Storage_Size();
+            this->data.serialize(x + blk);              // 8 + VectorA + Vector B
+        };
+
+        void deserialize(const char *x) override {
+            int blk = 0;
+            memcpy(&prev, x, sizeof(BlockIdx));         // 0
+            blk += sizeof(BlockIdx);
+            memcpy(&next, x + blk, sizeof(BlockIdx));   // 8
+            blk += sizeof(BlockIdx);
+            this->keys.deserialize(x + blk);            // 8 + VectorA
+            blk += this->keys.Storage_Size();
+            this->data.deserialize(x + blk);            // 8 + VectorA + Vector B
+        };
     };
 
     Block *root;

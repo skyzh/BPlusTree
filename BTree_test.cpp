@@ -21,7 +21,9 @@ TEST_CASE("Leaf", "[BTree]") {
         REQUIRE(*leaf.find(3) == 3);
         REQUIRE(*leaf.find(4) == 4);
         REQUIRE(leaf.find(5) == nullptr);
-    }SECTION("should split") {
+    }
+
+    SECTION("should split") {
         Map::Leaf leaf;
         storage.record(&leaf);
         leaf.insert(3, 3);
@@ -110,8 +112,8 @@ TEST_CASE("BTree", "[BTree]") {
 
     SECTION("should handle big data") {
         BTree<int, int, 512> m;
-        const int test_size = 10000;
-        int test_data[10000];
+        const int test_size = 100000;
+        int test_data[test_size];
         for (int i = 0; i < test_size; i++) {
             test_data[i] = i;
         }
@@ -125,6 +127,57 @@ TEST_CASE("BTree", "[BTree]") {
         for (int i = 0; i < test_size; i++) {
             REQUIRE(m.find(i));
             REQUIRE(i == *m.find(i));
+        }
+    }
+}
+
+TEST_CASE("Serialize", "[BTree]") {
+    SECTION("leaf should be serialized") {
+        char memory[Map::Leaf::Storage_Size()];
+        {
+            Map::Leaf leaf;
+            leaf.insert(3, 3);
+            leaf.insert(2, 2);
+            leaf.insert(1, 1);
+            leaf.insert(4, 4);
+            leaf.serialize(memory);
+        }
+        {
+            Map::Leaf leaf;
+            leaf.deserialize(memory);
+            REQUIRE(*leaf.find(1) == 1);
+            REQUIRE(*leaf.find(2) == 2);
+            REQUIRE(*leaf.find(3) == 3);
+            REQUIRE(*leaf.find(4) == 4);
+            REQUIRE(leaf.find(5) == nullptr);
+        }
+    }
+
+    SECTION("index should be serialized") {
+        char memory[Map::Index::Storage_Size()];
+        {
+            Map::Index idx;
+            idx.children.append(0);
+            idx.insert_block(1, 1);
+            idx.insert_block(3, 3);
+            idx.insert_block(2, 2);
+            idx.insert_block(4, 4);
+            idx.serialize(memory);
+        }
+        {
+            Map::Index idx;
+            idx.deserialize(memory);
+            REQUIRE (idx.keys.size == 4);
+            REQUIRE (idx.keys[0] == 1);
+            REQUIRE (idx.keys[1] == 2);
+            REQUIRE (idx.keys[2] == 3);
+            REQUIRE (idx.keys[3] == 4);
+            REQUIRE (idx.children.size == 5);
+            REQUIRE (idx.children[0] == 0);
+            REQUIRE (idx.children[1] == 1);
+            REQUIRE (idx.children[2] == 2);
+            REQUIRE (idx.children[3] == 3);
+            REQUIRE (idx.children[4] == 4);
         }
     }
 }

@@ -8,6 +8,14 @@
 #include <cassert>
 #include <cstring>
 
+class Serializable {
+    virtual unsigned storage_size() const = 0;
+
+    virtual void serialize(char *x) const = 0;
+
+    virtual void deserialize(const char *x) = 0;
+};
+
 template<typename U>
 struct Allocator {
     U *allocate(unsigned size) { return (U *) ::operator new(sizeof(U) * size); }
@@ -20,7 +28,7 @@ struct Allocator {
 };
 
 template<typename T, unsigned Cap>
-class Vector {
+class Vector : Serializable {
     Allocator<T> a;
 public:
     T *x;
@@ -78,6 +86,26 @@ public:
         memmove(that.x + offset, that.x + offset + length, length * sizeof(T));
         that.size = that.size - length;
         size = length;
+    }
+
+    unsigned storage_size() const { return Storage_Size(); };
+    /*
+     * Storage Mapping
+     * | 8 size | Cap() T x |
+     */
+    void serialize(char *memory) const {
+        memcpy(memory, &size, sizeof(size));
+        memcpy(memory + sizeof(size), x, sizeof(T) * capacity());
+    };
+
+    void deserialize(const char *memory) {
+        memcpy(&size, memory, sizeof(size));
+        memcpy(x, memory + sizeof(size), sizeof(T) * capacity());
+        // WARNING: only applicable to primitive types because no data were constructed!!!
+    };
+
+    static constexpr unsigned Storage_Size() {
+        return sizeof(T) * capacity() + sizeof(unsigned);
     }
 };
 
