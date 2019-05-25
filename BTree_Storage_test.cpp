@@ -4,8 +4,10 @@
 
 #include "BTree.hpp"
 #include "catch.hpp"
+#include <cstdio>
 
 using Map = BTree<int, int>;
+using BigMap = BTree<int, long long, 512>;
 
 TEST_CASE("Storage", "[Persistence]") {
     SECTION("should hold enough space") {
@@ -22,6 +24,7 @@ TEST_CASE("Storage", "[Persistence]") {
     }
 
     SECTION("should persist data") {
+        remove("persist.db");
         const int test_size = 16;
         {
             Map m("persist.db");
@@ -42,5 +45,31 @@ TEST_CASE("Storage", "[Persistence]") {
                 REQUIRE (m.find(i) == nullptr);
             }
         }
+        remove("persist.db");
+    }
+
+    SECTION("should persist even more data") {
+        const int test_size = 100000;
+        remove("persist_long_long.db");
+        {
+            BigMap m("persist_long_long.db");
+            for (int i = 0; i < test_size; i++) {
+                m.insert(i, i);
+            }
+        }
+        {
+            BigMap m("persist_long_long.db");
+            for (int i = 0; i < test_size; i++) {
+                REQUIRE (*m.find(i) == i);
+                m.remove(i);
+            }
+        }
+        {
+            BigMap m("persist_long_long.db");
+            for (int i = 0; i < test_size; i++) {
+                REQUIRE (m.find(i) == nullptr);
+            }
+        }
+        remove("persist_long_long.db");
     }
 }

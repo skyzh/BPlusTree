@@ -36,15 +36,18 @@ public:
 
     struct Persistence {
         static const unsigned MAX_BLOCK_NUM = 1024;
-        static const unsigned VERSION = 1;
+        static const unsigned VERSION = 3;
         Block *blocks[MAX_BLOCK_NUM];
         int offset;
         bool managed;
         struct PersistenceIndex {
             unsigned version;
+            unsigned magic_key;
             BlockIdx root_idx;
             unsigned block_offset[MAX_BLOCK_NUM];
             bool is_leaf[MAX_BLOCK_NUM];
+
+            static unsigned constexpr MAGIC_KEY() { return sizeof(K) * 233 + sizeof(V) * 23333 + Ord * 2333333; }
         } persistence_index;
 
         Persistence(bool managed = true) : offset(16), managed(managed) {
@@ -52,13 +55,14 @@ public:
             memset(persistence_index.block_offset, 0, sizeof(persistence_index.block_offset));
             persistence_index.root_idx = 0;
             persistence_index.version = VERSION;
+            persistence_index.magic_key = PersistenceIndex::MAGIC_KEY();
         };
 
         ~Persistence() {
             if (managed) for (int i = 0; i < MAX_BLOCK_NUM; i++) if (blocks[i] != nullptr) delete blocks[i];
         }
 
-        Block *get(unsigned idx) { return blocks[idx]; }
+        Block *get(BlockIdx idx) { return blocks[idx]; }
 
         unsigned find_idx() {
             for (int i = offset; i < MAX_BLOCK_NUM; i++) if (blocks[i] == nullptr) return i;
@@ -88,6 +92,7 @@ public:
             if(!file.is_open()) return false;
             file.read(reinterpret_cast<char*>(&persistence_index), sizeof(persistence_index));
             if (persistence_index.version != VERSION) return false;
+            if (persistence_index.magic_key != PersistenceIndex::MAGIC_KEY()) return false;
             for (int i = 0; i < MAX_BLOCK_NUM; i++) {
                 if (persistence_index.block_offset[i]) {
                     Block* block;
