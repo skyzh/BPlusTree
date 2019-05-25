@@ -4,10 +4,12 @@ dist: xenial
 compiler:
   - clang
 before_script:
+  - pushd .
   - cd ~ && git clone https://github.com/Microsoft/vcpkg.git && cd vcpkg
   - ./bootstrap-vcpkg.sh
   - ./vcpkg install catch2
 script:
+  - popd
   - cmake -H. -Bbuild -DCMAKE_TOOLCHAIN_FILE=~/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE
   - cd build
   - cmake --build .
