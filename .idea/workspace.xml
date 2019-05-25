@@ -8,19 +8,14 @@
   </component>
   <component name="CMakeSettings" AUTO_RELOAD="true">
     <configurations>
-      <configuration PROFILE_NAME="Debug" CONFIG_NAME="Debug" GENERATION_OPTIONS="-DCMAKE_TOOLCHAIN_FILE=~/Work/vcpkg/scripts/buildsystems/vcpkg.cmake&quot;" />
+      <configuration PROFILE_NAME="Debug" CONFIG_NAME="Debug" GENERATION_OPTIONS="-DCMAKE_TOOLCHAIN_FILE=~/Work/vcpkg/scripts/buildsystems/vcpkg.cmake" />
       <configuration PROFILE_NAME="Release" CONFIG_NAME="Release" GENERATION_OPTIONS="-DCMAKE_TOOLCHAIN_FILE=~/Work/vcpkg/scripts/buildsystems/vcpkg.cmake&quot;" />
     </configurations>
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c22aab94-e9c0-4065-b615-e976060762e7" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/BTree.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/BTree.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/BTree_Index_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/BTree_Index_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/BTree_Leaf_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/BTree_Leaf_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/BTree_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/BTree_test.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Container.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/Container.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/main.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/test_main.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../BTree/BTreeImpl.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/../BTree/BTreeImpl.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../BTree/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../BTree/main.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../BTree/test_BTree.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../BTree/test_BTree.cpp" afterDir="false" />
@@ -55,12 +50,21 @@
         <entry file="file://$PROJECT_DIR$/test_main.cpp">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="120">
-              <caret line="6" selection-start-line="6" selection-end-line="6" />
+              <caret line="6" column="32" selection-start-line="6" selection-start-column="32" selection-end-line="6" selection-end-column="32" />
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/.travis.yml">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="360">
+              <caret line="18" column="33" selection-start-line="18" selection-start-column="33" selection-end-line="18" selection-end-column="33" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/BTree_test.cpp">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="398">
@@ -173,7 +177,6 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/test_main.cpp" />
         <option value="$PROJECT_DIR$/CMakeLists.txt" />
         <option value="$PROJECT_DIR$/test_container.cpp" />
         <option value="$PROJECT_DIR$/Container_test.cpp" />
@@ -183,6 +186,8 @@
         <option value="$PROJECT_DIR$/BTree.hpp" />
         <option value="$PROJECT_DIR$/BTree_Leaf_test.cpp" />
         <option value="$PROJECT_DIR$/BTree_test.cpp" />
+        <option value="$PROJECT_DIR$/test_main.cpp" />
+        <option value="$PROJECT_DIR$/.travis.yml" />
       </list>
     </option>
   </component>
@@ -268,7 +273,7 @@
       <updated>1558621421810</updated>
       <workItem from="1558621423229" duration="1645000" />
       <workItem from="1558673782390" duration="2928000" />
-      <workItem from="1558704770650" duration="16473000" />
+      <workItem from="1558704770650" duration="17115000" />
     </task>
     <servers />
   </component>
@@ -305,7 +310,7 @@
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="21046000" />
+    <option name="totallyTimeSpent" value="21688000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -320,12 +325,12 @@
     <frame x="0" y="0" width="1680" height="1050" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.1910867" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.1910867" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.32959184" />
+      <window_info anchor="bottom" id="Run" order="2" visible="true" weight="0.32959184" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -395,13 +400,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/test_main.cpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="120">
-          <caret line="6" selection-start-line="6" selection-end-line="6" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/Container.hpp">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="180">
@@ -457,6 +455,20 @@
           <folding>
             <element signature="e#45#65#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test_main.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="120">
+          <caret line="6" column="32" selection-start-line="6" selection-start-column="32" selection-end-line="6" selection-end-column="32" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.travis.yml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="360">
+          <caret line="18" column="33" selection-start-line="18" selection-start-column="33" selection-end-line="18" selection-end-column="33" />
         </state>
       </provider>
     </entry>
