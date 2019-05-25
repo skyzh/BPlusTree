@@ -43,7 +43,55 @@ TEST_CASE("BTree", "[BTree]") {
         }
     }
 
-    SECTION("should handle big data") {
+    SECTION("should handle more insert and find") {
+        BTree<int, int, 512> m;
+        const int test_size = 100000;
+        int test_data[test_size];
+        for (int i = 0; i < test_size; i++) {
+            test_data[i] = i;
+        }
+        for (int i = test_size - 1; i >= 0; i--) {
+            int j = rand() % (i + 1);
+            std::swap(test_data[i], test_data[j]);
+        }
+        for (int i = 0; i < test_size; i++) {
+            m.insert(test_data[i], test_data[i]);
+        }
+        for (int i = 0; i < test_size; i++) {
+            REQUIRE(m.find(i));
+            REQUIRE(i == *m.find(i));
+        }
+    }
+
+    SECTION("should remove and find") {
+        BTree<int, int> m;
+        const int test_size = 16;
+        int test_data[test_size];
+        for (int i = 0; i < test_size; i++) {
+            test_data[i] = i;
+        }
+        for (int i = test_size - 1; i >= 0; i--) {
+            int j = rand() % (i + 1);
+            std::swap(test_data[i], test_data[j]);
+        }
+        for (int i = 0; i < test_size; i++) {
+            m.insert(i, i);
+        }
+        for (int i = 0; i < test_size; i++) {
+            REQUIRE (m.remove(test_data[i]));
+            for (int j = 0; j < test_size; j++) {
+                int idx = test_data[j];
+                int *query_result = m.find(idx);
+                if (j <= i) REQUIRE (query_result == nullptr);
+                else {
+                    REQUIRE (query_result);
+                    REQUIRE (*query_result == idx);
+                }
+            }
+        }
+    }
+
+    SECTION("should handle more remove and find") {
         BTree<int, int, 512> m;
         const int test_size = 100000;
         int test_data[test_size];
@@ -58,9 +106,62 @@ TEST_CASE("BTree", "[BTree]") {
             m.insert(i, i);
         }
         for (int i = 0; i < test_size; i++) {
+            m.remove(test_data[i]);
+            if (i % 10000 == 0) {
+                for (int j = 0; j < test_size; j++) {
+                    int *query_result = m.find(test_data[j]);
+                    if (j <= i) REQUIRE(query_result == nullptr);
+                    else {
+                        REQUIRE(query_result);
+                        REQUIRE(*query_result == test_data[j]);
+                    }
+                }
+            }
+        }
+    }
+
+    SECTION("should handle more insert and find") {
+        BTree<int, int, 2048> m;
+        const int test_size = 1000000;
+        int *test_data = new int[test_size];
+        for (int i = 0; i < test_size; i++) {
+            test_data[i] = i;
+        }
+        for (int i = test_size - 1; i >= 0; i--) {
+            int j = rand() % (i + 1);
+            std::swap(test_data[i], test_data[j]);
+        }
+        for (int i = 0; i < test_size; i++) {
+            m.insert(test_data[i], test_data[i]);
+        }
+        for (int i = 0; i < test_size; i++) {
             REQUIRE(m.find(i));
             REQUIRE(i == *m.find(i));
         }
+        delete[] test_data;
+    }
+
+    SECTION("should handle even more remove and find") {
+        BTree<int, int, 2048> m;
+        const int test_size = 1000000;
+        int *test_data = new int[test_size];
+        for (int i = 0; i < test_size; i++) {
+            test_data[i] = i;
+        }
+        for (int i = test_size - 1; i >= 0; i--) {
+            int j = rand() % (i + 1);
+            std::swap(test_data[i], test_data[j]);
+        }
+        for (int i = 0; i < test_size; i++) {
+            m.insert(i, i);
+        }
+        for (int i = 0; i < test_size; i++) {
+            m.remove(test_data[i]);
+        }
+        for (int i = 0; i < test_size; i++) {
+            REQUIRE (m.find(i) == nullptr);
+        }
+        delete[] test_data;
     }
 }
 
@@ -113,4 +214,8 @@ TEST_CASE("Serialize", "[BTree]") {
             REQUIRE (idx.children[4] == 4);
         }
     }
+}
+
+TEST_CASE("Storage", "[BTree]") {
+
 }

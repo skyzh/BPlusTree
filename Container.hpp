@@ -66,14 +66,14 @@ public:
 
     void insert(unsigned pos, const T &d) {
         assert(pos >= 0 && pos <= size);
-        assert(size < Cap);
+        assert(size < capacity());
         memmove(x + pos + 1, x + pos, (size - pos) * sizeof(T));
         a.construct(&x[pos], d);
         ++size;
     }
 
     void remove_range(unsigned pos, unsigned length = 1) {
-        assert(size > 0);
+        assert(size >= length);
         assert(pos < size);
         for (int i = pos; i < pos + length; i++) a.destruct(&x[i]);
         memmove(x + pos, x + pos + length, (size - length - pos) * sizeof(T));
@@ -98,6 +98,7 @@ public:
     void move_insert_from(Vector &that, unsigned offset, unsigned length, unsigned at) {
         assert(at <= size);
         assert(offset + length <= that.size);
+        assert(size + length <= capacity());
         memmove(x + at + length, x + at, (size - at) * sizeof(T));
         memcpy(x + at, that.x + offset, length * sizeof(T));
         memmove(that.x + offset, that.x + offset + length, (that.size - length - offset) * sizeof(T));

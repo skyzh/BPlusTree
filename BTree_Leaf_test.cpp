@@ -76,7 +76,7 @@ TEST_CASE("Leaf", "[BTree]") {
         leaf1.insert(2, 2);
         leaf2.insert(3, 3);
         leaf2.insert(4, 4);
-        REQUIRE(leaf1.borrow_from_right(&leaf2, 0) == 1);
+        REQUIRE(leaf1.borrow_from_right(&leaf2, 0) == 4);
         REQUIRE(leaf1.keys.size == 3);
         REQUIRE(leaf2.keys.size == 1);
         REQUIRE(leaf1.data.size == 3);
@@ -123,5 +123,19 @@ TEST_CASE("Leaf", "[BTree]") {
         REQUIRE(*leaf1.find(2) == 2);
         REQUIRE(*leaf1.find(3) == 3);
         REQUIRE(*leaf1.find(4) == 4);
+    }
+
+    SECTION("should remove") {
+        Map::Leaf leaf;
+        storage.record(&leaf);
+        leaf.insert(1, 1);
+        leaf.insert(2, 2);
+        leaf.insert(3, 3);
+        leaf.insert(4, 4);
+        leaf.remove(1);
+        REQUIRE(leaf.keys.size == 3);
+        REQUIRE(leaf.data.size == 3);
+        REQUIRE(leaf.find(1) == nullptr);
+        REQUIRE(!leaf.remove(1));
     }
 }
