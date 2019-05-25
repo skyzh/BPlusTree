@@ -8,7 +8,7 @@
 using Map = BTree<int, int>;
 
 TEST_CASE("Leaf", "[BTree]") {
-    Map::Storage storage(false);
+    Map::Persistence storage(false);
     SECTION("should insert and find") {
         Map::Leaf leaf;
         storage.record(&leaf);

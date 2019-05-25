@@ -8,6 +8,7 @@
 #include "Container.hpp"
 #include <cassert>
 #include <iostream>
+#include <fstream>
 
 template<typename K, typename V, unsigned Ord = 4>
 class BTree {
@@ -27,16 +28,116 @@ public:
      *                         data :: [v] }
      */
 
-    class Storage;
-
     class Leaf;
 
     class Index;
 
+    class Block;
+
+    struct Persistence {
+        static const unsigned MAX_BLOCK_NUM = 1024;
+        static const unsigned VERSION = 1;
+        Block *blocks[MAX_BLOCK_NUM];
+        int offset;
+        bool managed;
+        struct PersistenceIndex {
+            unsigned version;
+            BlockIdx root_idx;
+            unsigned block_offset[MAX_BLOCK_NUM];
+            bool is_leaf[MAX_BLOCK_NUM];
+        } persistence_index;
+
+        Persistence(bool managed = true) : offset(16), managed(managed) {
+            memset(blocks, 0, sizeof(blocks));
+            memset(persistence_index.block_offset, 0, sizeof(persistence_index.block_offset));
+            persistence_index.root_idx = 0;
+            persistence_index.version = VERSION;
+        };
+
+        ~Persistence() {
+            if (managed) for (int i = 0; i < MAX_BLOCK_NUM; i++) if (blocks[i] != nullptr) delete blocks[i];
+        }
+
+        Block *get(unsigned idx) { return blocks[idx]; }
+
+        unsigned find_idx() {
+            for (int i = offset; i < MAX_BLOCK_NUM; i++) if (blocks[i] == nullptr) return i;
+            return -1;
+        }
+
+        void record(Block *block) {
+            unsigned idx = find_idx();
+            block->idx = idx;
+            block->storage = this;
+            blocks[idx] = block;
+        }
+
+        void deregister(Block *block) {
+            blocks[block->idx] = nullptr;
+            block->idx = 0;
+        }
+
+        unsigned block_used() {
+            unsigned cnt = 0;
+            for (int i = 0; i < MAX_BLOCK_NUM; i++) if (blocks[i] != nullptr) ++cnt;
+            return cnt;
+        }
+
+        bool restore(const char* path) {
+            std::ifstream file(path, std::ios::in | std::ios::binary);
+            if(!file.is_open()) return false;
+            file.read(reinterpret_cast<char*>(&persistence_index), sizeof(persistence_index));
+            if (persistence_index.version != VERSION) return false;
+            for (int i = 0; i < MAX_BLOCK_NUM; i++) {
+                if (persistence_index.block_offset[i]) {
+                    Block* block;
+                    if (persistence_index.is_leaf[i]) block = new Leaf; else block = new Index;
+                    block->storage = this;
+                    block->idx = i;
+                    unsigned buffer_size =block->storage_size();
+                    char* buffer = new char[buffer_size];
+                    file.read(buffer, buffer_size);
+                    block->deserialize(buffer);
+                    delete[] buffer;
+                    blocks[i] = block;
+                } else {
+                    blocks[i] = nullptr;
+                }
+            }
+            return true;
+        }
+
+        void save(const char* path) {
+            std::ofstream file(path, std::ios::out | std::ios::trunc | std::ios::binary);
+            assert(file.is_open());
+            unsigned offset = sizeof(persistence_index);
+            for (int i = 0; i < MAX_BLOCK_NUM; i++) {
+                auto block = blocks[i];
+                if (block) {
+                    persistence_index.block_offset[i] = offset;
+                    persistence_index.is_leaf[i] = block->is_leaf();
+                    offset += block->storage_size();
+                } else {
+                    persistence_index.block_offset[i] = 0;
+                }
+            }
+            file.write(reinterpret_cast<char*>(&persistence_index), sizeof(persistence_index));
+            for (int i = 0; i < MAX_BLOCK_NUM; i++) {
+                if (blocks[i]) {
+                    unsigned buffer_size = blocks[i]->storage_size();
+                    char* buffer = new char[buffer_size];
+                    blocks[i]->serialize(buffer);
+                    file.write(buffer, buffer_size);
+                    delete[] buffer;
+                }
+            }
+        }
+    };
+
     struct Block : public Serializable {
         BlockIdx idx;
         Set<K, Order()> keys;
-        Storage *storage;
+        Persistence *storage;
 
         Block() : storage(nullptr) {}
 
@@ -78,37 +179,6 @@ public:
             Index *i = dynamic_cast<Index *>(b); // TODO: at runtime, we may use reinterpret_cast
             assert(i);
             return i;
-        }
-    };
-
-    class Storage {
-        static const int MAX_BLOCK_NUM = 65536;
-        Block *blocks[MAX_BLOCK_NUM];
-        int offset;
-        bool managed;
-    public:
-        Storage(bool managed = true) : offset(100), managed(managed) { memset(blocks, 0, sizeof(blocks)); };
-        ~Storage() {
-            if (managed) for (int i = 0; i < MAX_BLOCK_NUM; i++) if (blocks[i] != nullptr) delete blocks[i];
-        }
-
-        Block *get(BlockIdx idx) { return blocks[idx]; }
-
-        void record(Block *block) {
-            block->idx = offset;
-            block->storage = this;
-            blocks[offset++] = block;
-        }
-
-        void deregister(Block *block) {
-            blocks[block->idx] = nullptr;
-            block->idx = 0;
-        }
-
-        unsigned block_used() {
-            unsigned cnt = 0;
-            for (int i = 0; i < MAX_BLOCK_NUM; i++) if (blocks[i] != nullptr) ++cnt;
-            return cnt;
         }
     };
 
@@ -367,9 +437,18 @@ public:
     };
 
     Block *root;
-    Storage storage;
+    Persistence storage;
+    const char* path;
 
-    BTree() : root(nullptr) {}
+    BTree(const char* path = nullptr) : root(nullptr), path(path) {
+        if (path) storage.restore(path);
+        root = storage.get(storage.persistence_index.root_idx);
+    }
+
+    ~BTree() {
+        storage.persistence_index.root_idx = root ? root->idx : 0;
+        if (path) storage.save(path);
+    }
 
     V *find(const K &k) {
         if (!root) return nullptr;

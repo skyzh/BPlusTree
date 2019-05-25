@@ -9,6 +9,7 @@
 #include <cstring>
 
 class Serializable {
+public:
     virtual unsigned storage_size() const = 0;
 
     virtual void serialize(char *x) const = 0;

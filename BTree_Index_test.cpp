@@ -8,7 +8,7 @@
 using Map = BTree<int, int>;
 
 TEST_CASE("Index", "[BTree]") {
-    Map::Storage storage(false);
+    Map::Persistence storage(false);
     SECTION("should split") {
         Map::Index idx;
         storage.record(&idx);
