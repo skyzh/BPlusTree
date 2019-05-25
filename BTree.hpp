@@ -441,6 +441,43 @@ public:
         };
     };
 
+    class Iterator {
+        BTree* tree;
+        Leaf* leaf;
+        int pos;
+    public:
+        Iterator(BTree* tree, Leaf* leaf, int pos) : tree(tree), leaf(leaf), pos(pos) {}
+        void next() {
+            ++pos;
+            if (pos == leaf->keys.size) {
+                if (leaf->next) {
+                    pos = 0;
+                    leaf = Block::into_leaf(tree->storage.get(leaf->next));
+                }
+            }
+        }
+
+        V& get() {
+            return leaf->data[pos];
+        }
+    };
+
+    Iterator begin() {
+        Block* blk = root;
+        while(!blk->is_leaf()) blk = storage.get(Block::into_index(blk)->children[0]);
+        return Iterator(this, Block::into_leaf(blk), 0);
+    }
+
+    Iterator end() {
+        Block* blk = root;
+        while(!blk->is_leaf()) {
+            Index* idx = Block::into_index(blk);
+            blk = storage.get(idx->children[idx->children.size - 1]);
+        }
+        Leaf* leaf = Block::into_leaf(blk);
+        return Iterator(this, leaf, leaf->keys.size);
+    }
+
     Block *root;
     Persistence storage;
     const char* path;

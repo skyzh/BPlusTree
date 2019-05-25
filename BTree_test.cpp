@@ -245,3 +245,19 @@ TEST_CASE("Serialize", "[BTree]") {
         }
     }
 }
+
+TEST_CASE("Iterator", "[BTree]") {
+    SECTION("should get data") {
+        BTree<int, int, 512> m;
+        const int test_size = 100000;
+        int test_data[test_size];
+        for (int i = 0; i < test_size; i++) {
+            m.insert(i, i);
+        }
+        auto iter = m.begin();
+        for (int i = 0; i < test_size; i++) {
+            REQUIRE (iter.get() == i);
+            iter.next();
+        }
+    }
+}
