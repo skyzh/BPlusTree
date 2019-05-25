@@ -2,8 +2,8 @@
 <project version="4">
   <component name="CMakeRunConfigurationManager" shouldGenerate="true" shouldDeleteObsolete="true">
     <generated>
-      <config projectName="BPlusTree" targetName="BPlusTreeTest" />
       <config projectName="BPlusTree" targetName="BPlusTree" />
+      <config projectName="BPlusTree" targetName="BPlusTreeTest" />
     </generated>
   </component>
   <component name="CMakeSettings" AUTO_RELOAD="true">
@@ -13,10 +13,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c22aab94-e9c0-4065-b615-e976060762e7" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/BTree_Index_test.cpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/BTree_Leaf_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/BTree.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/BTree.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/BTree_test.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/BTree_test.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Container.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/Container.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_container.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/test_container.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_container.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Container_test.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../BTree/BTreeImpl.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/../BTree/BTreeImpl.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../BTree/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../BTree/main.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../BTree/test_BTree.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../BTree/test_BTree.cpp" afterDir="false" />
@@ -58,8 +62,20 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Container.hpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="366">
-              <caret line="100" column="42" lean-forward="true" selection-start-line="100" selection-start-column="42" selection-end-line="100" selection-end-column="42" />
+            <state relative-caret-position="193">
+              <caret line="69" column="10" selection-start-line="69" selection-start-column="10" selection-end-line="69" selection-end-column="10" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/BTree_test.cpp">
+          <provider selected="true" editor-type-id="text-editor">
+            <state>
+              <caret column="2" selection-start-column="2" selection-end-column="2" />
+              <folding>
+                <element signature="e#45#65#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -67,8 +83,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/BTree.hpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="203">
-              <caret line="78" column="36" selection-start-line="78" selection-start-column="36" selection-end-line="78" selection-end-column="36" />
+            <state relative-caret-position="487">
+              <caret line="173" column="87" selection-start-line="173" selection-start-column="87" selection-end-line="173" selection-end-column="87" />
               <folding>
                 <element signature="e#155#197#0" expanded="true" />
               </folding>
@@ -77,10 +93,22 @@
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/BTree_test.cpp">
+        <entry file="file://$PROJECT_DIR$/BTree_Index_test.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="512">
-              <caret line="168" column="36" selection-start-line="168" selection-start-column="36" selection-end-line="168" selection-end-column="36" />
+            <state relative-caret-position="449">
+              <caret line="138" column="109" selection-start-line="138" selection-start-column="109" selection-end-line="138" selection-end-column="109" />
+              <folding>
+                <element signature="e#44#64#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/BTree_Leaf_test.cpp">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="289">
+              <caret line="116" column="41" selection-start-line="116" selection-start-column="41" selection-end-line="116" selection-end-column="41" />
               <folding>
                 <element signature="e#45#65#0" expanded="true" />
               </folding>
@@ -89,22 +117,10 @@
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../../vcpkg/installed/x64-osx/include/catch2/catch.hpp">
+        <entry file="file://$PROJECT_DIR$/Container_test.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="171">
-              <caret line="1978" selection-start-line="1978" selection-end-line="1978" />
-              <folding>
-                <element signature="e#190784#484480#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/test_container.cpp">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-931">
-              <caret line="163" column="5" selection-start-line="163" selection-start-column="5" selection-end-line="163" selection-end-column="5" />
+            <state relative-caret-position="193">
+              <caret line="165" selection-start-line="165" selection-end-line="165" />
               <folding>
                 <element signature="e#45#65#0" expanded="true" />
               </folding>
@@ -128,7 +144,12 @@
       <find>Vector</find>
       <find>Set</find>
       <find>static con</find>
+      <find>move_from</find>
       <find>construct</find>
+      <find>borrow_f</find>
+      <find>borrow_</find>
+      <find>remove</find>
+      <find>merge</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -144,8 +165,11 @@
         <option value="$PROJECT_DIR$/main.cpp" />
         <option value="$PROJECT_DIR$/CMakeLists.txt" />
         <option value="$PROJECT_DIR$/test_container.cpp" />
-        <option value="$PROJECT_DIR$/Container.hpp" />
+        <option value="$PROJECT_DIR$/Container_test.cpp" />
         <option value="$PROJECT_DIR$/BTree_test.cpp" />
+        <option value="$PROJECT_DIR$/Container.hpp" />
+        <option value="$PROJECT_DIR$/BTree_Leaf_test.cpp" />
+        <option value="$PROJECT_DIR$/BTree_Index_test.cpp" />
         <option value="$PROJECT_DIR$/BTree.hpp" />
       </list>
     </option>
@@ -232,61 +256,70 @@
       <updated>1558621421810</updated>
       <workItem from="1558621423229" duration="1645000" />
       <workItem from="1558673782390" duration="2928000" />
-      <workItem from="1558704770650" duration="5245000" />
+      <workItem from="1558704770650" duration="11647000" />
     </task>
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="All_in_BPlusTreeTest - 2019.05.24 at 22h 53m 40s.xml">
+    <history-entry file="All_in_BPlusTreeTest - 2019.05.25 at 17h 13m 45s.xml">
       <configuration name="All in BPlusTreeTest" configurationId="CMakeCatchTestRunConfigurationType" />
     </history-entry>
-    <history-entry file="All_in_BPlusTreeTest - 2019.05.24 at 22h 53m 55s.xml">
+    <history-entry file="All_in_BPlusTreeTest - 2019.05.25 at 17h 16m 23s.xml">
       <configuration name="All in BPlusTreeTest" configurationId="CMakeCatchTestRunConfigurationType" />
     </history-entry>
-    <history-entry file="All_in_BPlusTreeTest - 2019.05.24 at 22h 54m 25s.xml">
+    <history-entry file="All_in_BPlusTreeTest - 2019.05.25 at 17h 16m 51s.xml">
       <configuration name="All in BPlusTreeTest" configurationId="CMakeCatchTestRunConfigurationType" />
     </history-entry>
-    <history-entry file="All_in_BPlusTreeTest - 2019.05.24 at 22h 56m 23s.xml">
+    <history-entry file="All_in_BPlusTreeTest - 2019.05.25 at 17h 17m 45s.xml">
       <configuration name="All in BPlusTreeTest" configurationId="CMakeCatchTestRunConfigurationType" />
     </history-entry>
-    <history-entry file="All_in_BPlusTreeTest - 2019.05.24 at 22h 56m 42s.xml">
+    <history-entry file="All_in_BPlusTreeTest - 2019.05.25 at 17h 18m 20s.xml">
       <configuration name="All in BPlusTreeTest" configurationId="CMakeCatchTestRunConfigurationType" />
     </history-entry>
-    <history-entry file="All_in_BPlusTreeTest - 2019.05.24 at 22h 57m 46s.xml">
+    <history-entry file="All_in_BPlusTreeTest - 2019.05.25 at 17h 21m 48s.xml">
       <configuration name="All in BPlusTreeTest" configurationId="CMakeCatchTestRunConfigurationType" />
     </history-entry>
-    <history-entry file="All_in_BPlusTreeTest - 2019.05.24 at 22h 59m 44s.xml">
+    <history-entry file="All_in_BPlusTreeTest - 2019.05.25 at 17h 22m 07s.xml">
       <configuration name="All in BPlusTreeTest" configurationId="CMakeCatchTestRunConfigurationType" />
     </history-entry>
-    <history-entry file="All_in_BPlusTreeTest - 2019.05.24 at 22h 59m 53s.xml">
+    <history-entry file="All_in_BPlusTreeTest - 2019.05.25 at 17h 22m 18s.xml">
       <configuration name="All in BPlusTreeTest" configurationId="CMakeCatchTestRunConfigurationType" />
     </history-entry>
-    <history-entry file="All_in_BPlusTreeTest - 2019.05.24 at 23h 00m 02s.xml">
+    <history-entry file="All_in_BPlusTreeTest - 2019.05.25 at 17h 24m 04s.xml">
       <configuration name="All in BPlusTreeTest" configurationId="CMakeCatchTestRunConfigurationType" />
     </history-entry>
-    <history-entry file="All_in_BPlusTreeTest - 2019.05.24 at 23h 00m 36s.xml">
+    <history-entry file="All_in_BPlusTreeTest - 2019.05.25 at 17h 26m 03s.xml">
       <configuration name="All in BPlusTreeTest" configurationId="CMakeCatchTestRunConfigurationType" />
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="9818000" />
+    <option name="totallyTimeSpent" value="16220000" />
+  </component>
+  <component name="TodoView">
+    <todo-panel id="selected-file">
+      <is-autoscroll-to-source value="true" />
+    </todo-panel>
+    <todo-panel id="all">
+      <are-packages-shown value="true" />
+      <is-autoscroll-to-source value="true" />
+    </todo-panel>
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1680" height="1050" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" weight="0.25579977" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.1910867" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info anchor="bottom" id="Run" order="2" weight="0.32959184" />
+      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.32959184" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
-      <window_info anchor="bottom" id="TODO" order="6" />
+      <window_info anchor="bottom" id="TODO" order="6" weight="0.32959184" />
       <window_info anchor="bottom" id="Database Changes" order="7" />
-      <window_info active="true" anchor="bottom" id="Messages" order="8" visible="true" weight="0.32959184" />
+      <window_info anchor="bottom" id="Messages" order="8" weight="0.32959184" />
       <window_info anchor="bottom" id="Terminal" order="9" />
       <window_info anchor="bottom" id="Event Log" order="10" side_tool="true" />
       <window_info anchor="bottom" id="Version Control" order="11" />
@@ -297,13 +330,13 @@
       <window_info anchor="right" id="Database" order="3" />
     </layout>
     <layout-to-restore>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.25579977" />
+      <window_info content_ui="combo" id="Project" order="0" weight="0.25579977" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info anchor="bottom" id="Run" order="2" weight="0.32959184" />
-      <window_info active="true" anchor="bottom" id="Debug" order="3" visible="true" weight="0.4" />
+      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.32959184" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
@@ -330,6 +363,16 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/../../vcpkg/installed/x64-osx/include/catch2/catch.hpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="171">
+          <caret line="1978" selection-start-line="1978" selection-end-line="1978" />
+          <folding>
+            <element signature="e#190784#484480#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/test_main.cpp">
       <provider selected="true" editor-type-id="text-editor">
         <state>
@@ -344,27 +387,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Container.hpp">
+    <entry file="file://$PROJECT_DIR$/Container_test.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="366">
-          <caret line="100" column="42" lean-forward="true" selection-start-line="100" selection-start-column="42" selection-end-line="100" selection-end-column="42" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../../vcpkg/installed/x64-osx/include/catch2/catch.hpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="171">
-          <caret line="1978" selection-start-line="1978" selection-end-line="1978" />
-          <folding>
-            <element signature="e#190784#484480#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/test_container.cpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-931">
-          <caret line="163" column="5" selection-start-line="163" selection-start-column="5" selection-end-line="163" selection-end-column="5" />
+        <state relative-caret-position="193">
+          <caret line="165" selection-start-line="165" selection-end-line="165" />
           <folding>
             <element signature="e#45#65#0" expanded="true" />
           </folding>
@@ -373,18 +399,45 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/BTree_test.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="512">
-          <caret line="168" column="36" selection-start-line="168" selection-start-column="36" selection-end-line="168" selection-end-column="36" />
+        <state>
+          <caret column="2" selection-start-column="2" selection-end-column="2" />
           <folding>
             <element signature="e#45#65#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/Container.hpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="193">
+          <caret line="69" column="10" selection-start-line="69" selection-start-column="10" selection-end-line="69" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/BTree_Leaf_test.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="289">
+          <caret line="116" column="41" selection-start-line="116" selection-start-column="41" selection-end-line="116" selection-end-column="41" />
+          <folding>
+            <element signature="e#45#65#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/BTree_Index_test.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="449">
+          <caret line="138" column="109" selection-start-line="138" selection-start-column="109" selection-end-line="138" selection-end-column="109" />
+          <folding>
+            <element signature="e#44#64#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/BTree.hpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="203">
-          <caret line="78" column="36" selection-start-line="78" selection-start-column="36" selection-end-line="78" selection-end-column="36" />
+        <state relative-caret-position="487">
+          <caret line="173" column="87" selection-start-line="173" selection-start-column="87" selection-end-line="173" selection-end-column="87" />
           <folding>
             <element signature="e#155#197#0" expanded="true" />
           </folding>

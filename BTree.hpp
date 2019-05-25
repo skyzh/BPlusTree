@@ -8,6 +8,9 @@
 #include "Container.hpp"
 #include <cassert>
 
+struct NotImplemented {
+};
+
 template<typename K, typename V, unsigned Ord = 4>
 class BTree {
 public:
@@ -37,9 +40,11 @@ public:
 
         virtual constexpr bool is_leaf() const = 0;
 
-        virtual Block *split(K &k) = 0;
+        virtual Block *split(K &split_key) = 0;
 
         virtual void insert(const K &k, const V &v) = 0;
+
+        virtual bool remove(const K &k) = 0;
 
         virtual V *find(const K &k) = 0;
 
@@ -47,25 +52,34 @@ public:
 
         bool should_merge() const { return keys.size * 2 <= Order(); }
 
+        bool may_borrow() const { return keys.size * 2 > Order(); }
 
+        virtual K borrow_from_left(Block *left, const K &split_key) = 0;
+
+        virtual K borrow_from_right(Block *right, const K &split_key) = 0;
+
+        virtual void merge_with_left(Block *left, const K &split_key) = 0;
+
+        virtual void merge_with_right(Block *right, const K &split_key) = 0;
     };
 
     class Storage {
         Block *blocks[65536];
-        int size;
+        int offset;
     public:
-        Storage() : size(100) {};
+        Storage() : offset(100) {};
 
         Block *get(BlockIdx idx) { return blocks[idx]; }
 
         void record(Block *block) {
-            block->idx = size;
+            block->idx = offset;
             block->storage = this;
-            blocks[size++] = block;
+            blocks[offset++] = block;
         }
 
         void deregister(Block *block) {
             blocks[block->idx] = nullptr;
+            block->idx = 0;
         }
     };
 
@@ -92,6 +106,13 @@ public:
             this->children.insert(pos + 1, v);
         }
 
+        V *find(const K &k) override {
+            // {left: key < index_key} {right: key >= index_key}
+            unsigned pos = this->keys.upper_bound(k);
+            Block *block = this->storage->get(children[pos]);
+            return block->find(k);
+        }
+
         void insert(const K &k, const V &v) override {
             // {left: key < index_key} {right: key >= index_key}
             unsigned pos = this->keys.upper_bound(k);
@@ -104,16 +125,54 @@ public:
             }
         };
 
-        V *find(const K &k) override {
-            // {left: key < index_key} {right: key >= index_key}
+        bool remove(const K &k) override {
             unsigned pos = this->keys.upper_bound(k);
             Block *block = this->storage->get(children[pos]);
-            return block->find(k);
+            return block->remove(k);
         }
 
         static constexpr unsigned Storage_Size() {
             return Set<K, Order()>::Storage_Size() + Vector<BlockIdx, Order() + 1>::Storage_Size();
         }
+
+        static Index *into_index(Block *b) {
+            assert(!b->is_leaf());
+            Index *i = dynamic_cast<Index *>(b); // TODO: at runtime, we may use reinterpret_cast
+            assert(i);
+            return i;
+        }
+
+        K borrow_from_left(Block *_left, const K &split_key) override {
+            Index* left = into_index(_left);
+            // TODO: we should verify that split_key is always the minimum
+            this->keys.insert(split_key);
+            // TODO: wish I were writing in Rust... therefore there'll be no copy overhead
+            K new_split_key = left->keys.pop();
+            this->children.move_insert_from(left->children, left->children.size - 1, 1, 0);
+            return new_split_key;
+        };
+
+        K borrow_from_right(Block *_right, const K &split_key) override {
+            Index* right = into_index(_right);
+            this->keys.insert(split_key);
+            K new_split_key = right->keys.remove(0);
+            this->children.move_insert_from(right->children, 0, 1, this->children.size);
+            return new_split_key;
+        };
+
+        void merge_with_left(Block *_left, const K &split_key) override {
+            Index* left = into_index(_left);
+            this->keys.insert(split_key);
+            this->keys.move_insert_from(left->keys, 0, left->keys.size, 0);
+            this->children.move_insert_from(left->children, 0, left->children.size, 0);
+        };
+
+        void merge_with_right(Block *_right, const K &split_key) override {
+            Index* right = into_index(_right);
+            this->keys.insert(split_key);
+            this->keys.move_insert_from(right->keys, 0, right->keys.size, this->keys.size);
+            this->children.move_insert_from(right->children, 0, right->children.size, this->children.size);
+        };
 
         unsigned storage_size() const override { return Storage_Size(); }
 
@@ -158,6 +217,15 @@ public:
             this->data.insert(pos, v);
         }
 
+        bool remove(const K &k) override {
+            unsigned pos = this->keys.lower_bound(k);
+            if (pos >= this->keys.size || this->keys[pos] != k)
+                return false;
+            this->keys.remove(pos);
+            this->data.remove(pos);
+            return true;
+        }
+
         /* split :: Leaf -> (k, Leaf, Leaf)
          * split (Leaf a) = [k, prev, next]
          * this = prev, return = next
@@ -174,6 +242,39 @@ public:
             k = that->keys[0];
             return that;
         }
+
+        static Leaf *into_leaf(Block *b) {
+            assert(b->is_leaf());
+            Leaf *l = dynamic_cast<Leaf *>(b); // TODO: at runtime, we may use reinterpret_cast
+            assert(l);
+            return l;
+        }
+
+        K borrow_from_left(Block *_left, const K &) override {
+            Leaf* left = into_leaf(_left);
+            this->keys.move_insert_from(left->keys, left->keys.size - 1, 1, 0);
+            this->data.move_insert_from(left->data, left->data.size - 1, 1, 0);
+            return this->keys[0];
+        };
+
+        K borrow_from_right(Block *_right, const K &) override {
+            Leaf* right = into_leaf(_right);
+            this->keys.move_insert_from(right->keys, 0, 1, this->keys.size);
+            this->data.move_insert_from(right->data, 0, 1, this->data.size);
+            return this->keys[0];
+        };
+
+        void merge_with_left(Block *_left, const K &) override {
+            Leaf* left = into_leaf(_left);
+            this->keys.move_insert_from(left->keys, 0, left->keys.size, 0);
+            this->data.move_insert_from(left->data, 0, left->data.size, 0);
+        };
+
+        void merge_with_right(Block *_right, const K &) override {
+            Leaf* right = into_leaf(_right);
+            this->keys.move_insert_from(right->keys, 0, right->keys.size, this->keys.size);
+            this->data.move_insert_from(right->data, 0, right->data.size, this->data.size);
+        };
 
         static constexpr unsigned Storage_Size() {
             return Set<K, Order()>::Storage_Size() + Vector<V, Order()>::Storage_Size() + sizeof(BlockIdx) * 2;

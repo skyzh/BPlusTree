@@ -119,6 +119,40 @@ TEST_CASE("Vector", "[Vector]") {
         REQUIRE (b.size == 3);
     }
 
+    SECTION("should move insert", "[Vector]") {
+        Vector<int, 10> v;
+        Vector<int, 10> b;
+        v.append(1);
+        v.append(2);
+        v.append(3);
+        v.append(4);
+        v.append(5);
+        v.append(6);
+        v.append(7);
+        b.append(-5);
+        b.append(-4);
+        b.append(-3);
+        b.append(-2);
+        b.append(-1);
+        b.append(2333);
+        b.move_insert_from(v, 1, 3, 2);
+        REQUIRE (v[0] == 1);
+        REQUIRE (v[1] == 5);
+        REQUIRE (v[2] == 6);
+        REQUIRE (v[3] == 7);
+        REQUIRE (v.size == 4);
+        REQUIRE (b[0] == -5);
+        REQUIRE (b[1] == -4);
+        REQUIRE (b[2] == 2);
+        REQUIRE (b[3] == 3);
+        REQUIRE (b[4] == 4);
+        REQUIRE (b[5] == -3);
+        REQUIRE (b[6] == -2);
+        REQUIRE (b[7] == -1);
+        REQUIRE (b[8] == 2333);
+        REQUIRE (b.size == 9);
+    }
+
     SECTION("should remove", "[Vector]") {
         Vector<int, 8> v;
         v.append(1);
@@ -129,16 +163,16 @@ TEST_CASE("Vector", "[Vector]") {
         v.append(6);
         v.append(7);
         v.append(8);
-        v.remove(0);
-        v.remove(2);
-        v.remove(5);
+        REQUIRE(v.remove(0) == 1);
+        REQUIRE(v.remove(2) == 4);
+        REQUIRE(v.remove(5) == 8);
         REQUIRE (v[0] == 2);
         REQUIRE (v[1] == 3);
         REQUIRE (v[2] == 5);
         REQUIRE (v[3] == 6);
         REQUIRE (v[4] == 7);
         REQUIRE (v.size == 5);
-        v.remove(1, 3);
+        v.remove_range(1, 3);
         REQUIRE (v[0] == 2);
         REQUIRE (v[1] == 7);
         REQUIRE (v.size == 2);
@@ -157,7 +191,7 @@ TEST_CASE("Vector", "[Vector]") {
             v.append(TestClass(6));
             v.append(TestClass(7));
             v.append(TestClass(8));
-            v.remove(0, 8);
+            v.remove_range(0, 8);
         }
         REQUIRE (TestClass::construct_cnt == 16);
         REQUIRE (TestClass::destruct_cnt == 16);

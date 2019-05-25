@@ -72,7 +72,7 @@ public:
         ++size;
     }
 
-    void remove(unsigned pos, unsigned length = 1) {
+    void remove_range(unsigned pos, unsigned length = 1) {
         assert(size > 0);
         assert(pos < size);
         for (int i = pos; i < pos + length; i++) a.destruct(&x[i]);
@@ -80,12 +80,29 @@ public:
         size -= length;
     }
 
+    T remove(unsigned pos) {
+        assert(size > 0);
+        assert(pos < size);
+        T element = x[pos];
+        a.destruct(&x[pos]);
+        memmove(x + pos, x + pos + 1, (size - 1 - pos) * sizeof(T));
+        size -= 1;
+        return element;
+    }
+
     void move_from(Vector &that, unsigned offset, unsigned length) {
         assert(size == 0);
-        memcpy(x, that.x + offset, length * sizeof(T));
-        memmove(that.x + offset, that.x + offset + length, length * sizeof(T));
-        that.size = that.size - length;
-        size = length;
+        move_insert_from(that, offset, length, 0);
+    }
+
+    void move_insert_from(Vector &that, unsigned offset, unsigned length, unsigned at) {
+        assert(at <= size);
+        assert(offset + length <= that.size);
+        memmove(x + at + length, x + at, (size - at) * sizeof(T));
+        memcpy(x + at, that.x + offset, length * sizeof(T));
+        memmove(that.x + offset, that.x + offset + length, (that.size - length - offset) * sizeof(T));
+        that.size -= length;
+        size += length;
     }
 
     unsigned storage_size() const { return Storage_Size(); };
