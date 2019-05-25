@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.12)
 project(BPlusTree)
 
 set(CMAKE_CXX_STANDARD 14)
@@ -9,4 +9,4 @@ find_path(CATCH_INCLUDE_DIR NAMES catch.hpp PATH_SUFFIXES catch2)
 include_directories(${CATCH_INCLUDE_DIR})
 
 add_executable(BPlusTree main.cpp BTree.hpp Container.hpp)
-add_executable(BPlusTreeTest test_main.cpp BTree.hpp BTree_test.cpp Container.hpp Container_test.cpp BTree_Leaf_test.cpp BTree_Index_test.cpp)
+add_executable(BPlusTreeTest test_main.cpp BTree.hpp BTree_test.cpp Container.hpp Container_test.cpp BTree_Leaf_test.cpp BTree_Index_test.cpp BTree_Storage_test.cpp)

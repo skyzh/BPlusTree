@@ -163,6 +163,36 @@ TEST_CASE("BTree", "[BTree]") {
         }
         delete[] test_data;
     }
+
+    SECTION("should handle further more insert, remove and find") {
+        BTree<int, int, 2048> m;
+        const int test_size = 10000;
+        int *test_data = new int[test_size];
+        for (int i = 0; i < test_size; i++) {
+            test_data[i] = i;
+        }
+        for (int i = test_size - 1; i >= 0; i--) {
+            int j = rand() % (i + 1);
+            std::swap(test_data[i], test_data[j]);
+        }
+        const int threshold = 5000;
+        for (int i = 0; i < threshold; i++) {
+            m.insert(test_data[i], test_data[i]);
+        }
+        for (int j = 0; j < 5; j++) {
+            for (int i = threshold; i < test_size; i++) {
+                m.insert(test_data[i], test_data[i]);
+            }
+            for (int i = threshold; i < test_size; i++) {
+                m.remove(test_data[i]);
+            }
+        }
+        for (int i = 0; i < test_size; i++) {
+            if (i >= threshold) REQUIRE (m.find(test_data[i]) == nullptr);
+            else REQUIRE (*m.find(test_data[i]) == test_data[i]);
+        }
+        delete[] test_data;
+    }
 }
 
 TEST_CASE("Serialize", "[BTree]") {
@@ -214,8 +244,4 @@ TEST_CASE("Serialize", "[BTree]") {
             REQUIRE (idx.children[4] == 4);
         }
     }
-}
-
-TEST_CASE("Storage", "[BTree]") {
-
 }

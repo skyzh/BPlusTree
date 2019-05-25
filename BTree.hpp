@@ -40,6 +40,8 @@ public:
 
         Block() : storage(nullptr) {}
 
+        virtual ~Block() {}
+
         virtual constexpr bool is_leaf() const = 0;
 
         virtual Block *split(K &split_key) = 0;
@@ -80,10 +82,15 @@ public:
     };
 
     class Storage {
-        Block *blocks[65536];
+        static const int MAX_BLOCK_NUM = 65536;
+        Block *blocks[MAX_BLOCK_NUM];
         int offset;
+        bool managed;
     public:
-        Storage() : offset(100) {};
+        Storage(bool managed = true) : offset(100), managed(managed) { memset(blocks, 0, sizeof(blocks)); };
+        ~Storage() {
+            if (managed) for (int i = 0; i < MAX_BLOCK_NUM; i++) if (blocks[i] != nullptr) delete blocks[i];
+        }
 
         Block *get(BlockIdx idx) { return blocks[idx]; }
 
@@ -96,6 +103,12 @@ public:
         void deregister(Block *block) {
             blocks[block->idx] = nullptr;
             block->idx = 0;
+        }
+
+        unsigned block_used() {
+            unsigned cnt = 0;
+            for (int i = 0; i < MAX_BLOCK_NUM; i++) if (blocks[i] != nullptr) ++cnt;
+            return cnt;
         }
     };
 
@@ -166,6 +179,7 @@ public:
                     K split_key = this->keys[pos - 1];
                     Block *left = this->storage->get(children.remove(pos - 1));
                     block->merge_with_left(left, split_key);
+                    delete left;
                     this->keys.remove(pos - 1);
                     return true;
                 }
@@ -173,6 +187,7 @@ public:
                     K split_key = this->keys[pos];
                     Block *right = this->storage->get(children.remove(pos + 1));
                     block->merge_with_right(right, split_key);
+                    delete right;
                     this->keys.remove(pos);
                     return true;
                 }
@@ -352,15 +367,9 @@ public:
     };
 
     Block *root;
-    Storage *storage;
+    Storage storage;
 
-    BTree() : root(nullptr) {
-        storage = new Storage;
-    }
-
-    ~BTree() {
-        delete storage;
-    }
+    BTree() : root(nullptr) {}
 
     V *find(const K &k) {
         if (!root) return nullptr;
@@ -369,13 +378,13 @@ public:
 
     Leaf *create_leaf() {
         Leaf *block = new Leaf;
-        storage->record(block);
+        storage.record(block);
         return block;
     }
 
     Index *create_index() {
         Index *block = new Index;
-        storage->record(block);
+        storage.record(block);
         return block;
     }
 
@@ -400,26 +409,27 @@ public:
         if (!result) return false;
         if (root->keys.size == 0) {
             if (!root->is_leaf()) {
-                Index* prev_root = Block::into_index(root);
-                root = storage->get(prev_root->children[0]);
-                storage->deregister(prev_root);
+                Index *prev_root = Block::into_index(root);
+                root = storage.get(prev_root->children[0]);
+                storage.deregister(prev_root);
+                delete prev_root;
             }
         }
         return true;
     }
 
-    void debug(Block* block) {
+    void debug(Block *block) {
         std::cerr << "Block ID: " << block->idx << " ";
         if (block->is_leaf()) std::cerr << "(Leaf)" << std::endl;
         else std::cerr << "(Index)" << std::endl;
         if (block->is_leaf()) {
-            Leaf* leaf = Block::into_leaf(block);
+            Leaf *leaf = Block::into_leaf(block);
             for (int i = 0; i < leaf->keys.size; i++) {
                 std::cerr << leaf->keys[i] << "=" << leaf->data[i] << " ";
             }
             std::cerr << std::endl;
         } else {
-            Index* index = Block::into_index(block);
+            Index *index = Block::into_index(block);
             for (int i = 0; i < index->keys.size; i++) {
                 std::cerr << index->keys[i] << " ";
             }
@@ -429,7 +439,7 @@ public:
             }
             std::cerr << std::endl;
             for (int i = 0; i < index->children.size; i++) {
-                debug(storage->get(index->children[i]));
+                debug(storage.get(index->children[i]));
             }
         }
     }
