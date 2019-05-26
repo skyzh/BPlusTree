@@ -134,12 +134,8 @@ public:
     unsigned lower_bound(const T &d) {
         unsigned L = 0, R = this->size;
         while (L < R) {
-            unsigned M = (L + R) >> 1;
-            if (this->x[M] < d) {
-                L = M + 1;
-            } else {
-                R = M;
-            }
+            unsigned M = L + ((R - L) >> 1);
+            if (this->x[M] < d) L = M + 1; else R = M;
         }
         return L;
     }
@@ -147,12 +143,8 @@ public:
     unsigned upper_bound(const T &d) {
         unsigned L = 0, R = this->size;
         while (L < R) {
-            unsigned M = (L + R) >> 1;
-            if (this->x[M] <= d) {
-                L = M + 1;
-            } else {
-                R = M;
-            }
+            unsigned M = L + ((R - L) >> 1);
+            if (this->x[M] <= d) L = M + 1; else R = M;
         }
         return L;
     }

@@ -5,13 +5,12 @@
 #include "BTree.hpp"
 #include "catch.hpp"
 
-using Map = BTree<int, int>;
-
+using Map = BTree<int, int, 4>;
 TEST_CASE("Leaf", "[BTree]") {
-    Map::Persistence storage(false);
+    Map::Persistence<> *storage = new Map::Persistence<>(false);
     SECTION("should insert and find") {
         Map::Leaf leaf;
-        storage.record(&leaf);
+        storage->record(&leaf);
         leaf.insert(3, 3);
         leaf.insert(2, 2);
         leaf.insert(1, 1);
@@ -25,7 +24,7 @@ TEST_CASE("Leaf", "[BTree]") {
 
     SECTION("should split") {
         Map::Leaf leaf;
-        storage.record(&leaf);
+        storage->record(&leaf);
         leaf.insert(3, 3);
         leaf.insert(2, 2);
         leaf.insert(1, 1);
@@ -48,8 +47,8 @@ TEST_CASE("Leaf", "[BTree]") {
 
     SECTION("should borrow from left") {
         Map::Leaf leaf1, leaf2;
-        storage.record(&leaf1);
-        storage.record(&leaf2);
+        storage->record(&leaf1);
+        storage->record(&leaf2);
         leaf1.insert(1, 1);
         leaf1.insert(2, 2);
         leaf2.insert(3, 3);
@@ -70,8 +69,8 @@ TEST_CASE("Leaf", "[BTree]") {
 
     SECTION("should borrow from right") {
         Map::Leaf leaf1, leaf2;
-        storage.record(&leaf1);
-        storage.record(&leaf2);
+        storage->record(&leaf1);
+        storage->record(&leaf2);
         leaf1.insert(1, 1);
         leaf1.insert(2, 2);
         leaf2.insert(3, 3);
@@ -89,8 +88,8 @@ TEST_CASE("Leaf", "[BTree]") {
 
     SECTION("should merge with left") {
         Map::Leaf leaf1, leaf2;
-        storage.record(&leaf1);
-        storage.record(&leaf2);
+        storage->record(&leaf1);
+        storage->record(&leaf2);
         leaf1.insert(1, 1);
         leaf1.insert(2, 2);
         leaf2.insert(3, 3);
@@ -108,8 +107,8 @@ TEST_CASE("Leaf", "[BTree]") {
 
     SECTION("should merge with right") {
         Map::Leaf leaf1, leaf2;
-        storage.record(&leaf1);
-        storage.record(&leaf2);
+        storage->record(&leaf1);
+        storage->record(&leaf2);
         leaf1.insert(1, 1);
         leaf1.insert(2, 2);
         leaf2.insert(3, 3);
@@ -127,7 +126,7 @@ TEST_CASE("Leaf", "[BTree]") {
 
     SECTION("should remove") {
         Map::Leaf leaf;
-        storage.record(&leaf);
+        storage->record(&leaf);
         leaf.insert(1, 1);
         leaf.insert(2, 2);
         leaf.insert(3, 3);

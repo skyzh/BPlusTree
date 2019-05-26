@@ -5,13 +5,14 @@
 #include "BTree.hpp"
 #include "catch.hpp"
 
-using Map = BTree<int, int>;
+using Map = BTree<int, int, 4>;
+
 
 TEST_CASE("Index", "[BTree]") {
-    Map::Persistence storage(false);
+    Map::Persistence<> *storage = new Map::Persistence<>(false);
     SECTION("should split") {
         Map::Index idx;
-        storage.record(&idx);
+        storage->record(&idx);
         idx.children.append(0);
         idx.insert_block(1, 1);
         idx.insert_block(3, 3);
@@ -35,14 +36,14 @@ TEST_CASE("Index", "[BTree]") {
 
     SECTION("should borrow from left") {
         Map::Index idx1;
-        storage.record(&idx1);
+        storage->record(&idx1);
         idx1.children.append(0);
         idx1.insert_block(1, 1);
         idx1.insert_block(2, 2);
         idx1.insert_block(3, 3);
 
         Map::Index idx2;
-        storage.record(&idx2);
+        storage->record(&idx2);
         idx2.children.append(4);
         idx2.insert_block(5, 5);
         idx2.insert_block(6, 6);
@@ -65,14 +66,14 @@ TEST_CASE("Index", "[BTree]") {
 
     SECTION("should borrow from right") {
         Map::Index idx1;
-        storage.record(&idx1);
+        storage->record(&idx1);
         idx1.children.append(0);
         idx1.insert_block(1, 1);
         idx1.insert_block(2, 2);
         idx1.insert_block(3, 3);
 
         Map::Index idx2;
-        storage.record(&idx2);
+        storage->record(&idx2);
         idx2.children.append(4);
         idx2.insert_block(5, 5);
         idx2.insert_block(6, 6);
@@ -95,13 +96,13 @@ TEST_CASE("Index", "[BTree]") {
 
     SECTION("should merge with left") {
         Map::Index idx1;
-        storage.record(&idx1);
+        storage->record(&idx1);
         idx1.children.append(0);
         idx1.insert_block(1, 1);
         idx1.insert_block(2, 2);
 
         Map::Index idx2;
-        storage.record(&idx2);
+        storage->record(&idx2);
         idx2.children.append(3);
         idx2.insert_block(4, 4);
 
@@ -118,13 +119,13 @@ TEST_CASE("Index", "[BTree]") {
 
     SECTION("should merge with right") {
         Map::Index idx1;
-        storage.record(&idx1);
+        storage->record(&idx1);
         idx1.children.append(0);
         idx1.insert_block(1, 1);
         idx1.insert_block(2, 2);
 
         Map::Index idx2;
-        storage.record(&idx2);
+        storage->record(&idx2);
         idx2.children.append(3);
         idx2.insert_block(4, 4);
 

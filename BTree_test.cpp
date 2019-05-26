@@ -5,7 +5,7 @@
 #include "BTree.hpp"
 #include "catch.hpp"
 
-using Map = BTree<int, int>;
+using Map = BTree<int, int, 4>;
 
 TEST_CASE("BTree", "[BTree]") {
     SECTION("should insert and find") {

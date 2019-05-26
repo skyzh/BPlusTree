@@ -10,12 +10,13 @@
 #include <iostream>
 #include <fstream>
 
-template<typename K, typename V, unsigned Ord = 4>
+template<typename K, typename V, unsigned Ord = 4 * 1024 / (sizeof(K) + sizeof(V))>
 class BTree {
 public:
     using BlockIdx = unsigned;
 
     static constexpr unsigned Order() { return Ord; }
+    static constexpr unsigned HalfOrder() { return Order() >> 1; }
 
     /*
      * data Block k v = Index { idx :: Int,
@@ -34,12 +35,16 @@ public:
 
     class Block;
 
+    template<
+            unsigned MAX_BLOCK_NUM = 8388608,
+            unsigned INMEMORY = 256 * 1024 * 1024 / Order() / sizeof(K) / 4>
     struct Persistence {
-        static const unsigned MAX_BLOCK_NUM = 1024;
-        static const unsigned VERSION = 3;
+        static const unsigned VERSION = 4;
         Block *blocks[MAX_BLOCK_NUM];
         int offset;
+        int blk;
         bool managed;
+
         struct PersistenceIndex {
             unsigned version;
             unsigned magic_key;
@@ -47,8 +52,22 @@ public:
             unsigned block_offset[MAX_BLOCK_NUM];
             bool is_leaf[MAX_BLOCK_NUM];
 
-            static unsigned constexpr MAGIC_KEY() { return sizeof(K) * 233 + sizeof(V) * 23333 + Ord * 2333333; }
+            static unsigned constexpr MAGIC_KEY() {
+                return sizeof(K) * 233
+                       + sizeof(V) * 23333
+                       + Ord * 2333333
+                       + MAX_BLOCK_NUM * 23;
+            }
         } persistence_index;
+
+        struct Stat {
+            unsigned total_access;
+            unsigned create;
+            unsigned destroy;
+            void stat() {
+                std::cout << total_access << " " << create << " " << destroy << std::endl;
+            }
+        } stat;
 
         Persistence(bool managed = true) : offset(16), managed(managed) {
             memset(blocks, 0, sizeof(blocks));
@@ -56,17 +75,25 @@ public:
             persistence_index.root_idx = 0;
             persistence_index.version = VERSION;
             persistence_index.magic_key = PersistenceIndex::MAGIC_KEY();
+            blk = offset;
+            memset(&stat, 0, sizeof(stat));
         };
 
         ~Persistence() {
             if (managed) for (int i = 0; i < MAX_BLOCK_NUM; i++) if (blocks[i] != nullptr) delete blocks[i];
         }
 
-        Block *get(BlockIdx idx) { return blocks[idx]; }
+        Block *get(BlockIdx idx) {
+            ++stat.total_access;
+            return blocks[idx];
+        }
 
         unsigned find_idx() {
-            for (int i = offset; i < MAX_BLOCK_NUM; i++) if (blocks[i] == nullptr) return i;
-            return -1;
+            while (blocks[blk] != nullptr) {
+                ++blk;
+                if (blk >= MAX_BLOCK_NUM) blk = offset;
+            }
+            return blk;
         }
 
         void record(Block *block) {
@@ -74,11 +101,13 @@ public:
             block->idx = idx;
             block->storage = this;
             blocks[idx] = block;
+            ++stat.create;
         }
 
         void deregister(Block *block) {
             blocks[block->idx] = nullptr;
             block->idx = 0;
+            ++stat.destroy;
         }
 
         unsigned block_used() {
@@ -87,20 +116,20 @@ public:
             return cnt;
         }
 
-        bool restore(const char* path) {
+        bool restore(const char *path) {
             std::ifstream file(path, std::ios::in | std::ios::binary);
-            if(!file.is_open()) return false;
-            file.read(reinterpret_cast<char*>(&persistence_index), sizeof(persistence_index));
+            if (!file.is_open()) return false;
+            file.read(reinterpret_cast<char *>(&persistence_index), sizeof(persistence_index));
             if (persistence_index.version != VERSION) return false;
             if (persistence_index.magic_key != PersistenceIndex::MAGIC_KEY()) return false;
             for (int i = 0; i < MAX_BLOCK_NUM; i++) {
                 if (persistence_index.block_offset[i]) {
-                    Block* block;
+                    Block *block;
                     if (persistence_index.is_leaf[i]) block = new Leaf; else block = new Index;
                     block->storage = this;
                     block->idx = i;
-                    unsigned buffer_size =block->storage_size();
-                    char* buffer = new char[buffer_size];
+                    unsigned buffer_size = block->storage_size();
+                    char *buffer = new char[buffer_size];
                     file.read(buffer, buffer_size);
                     block->deserialize(buffer);
                     delete[] buffer;
@@ -112,7 +141,7 @@ public:
             return true;
         }
 
-        void save(const char* path) {
+        void save(const char *path) {
             std::ofstream file(path, std::ios::out | std::ios::trunc | std::ios::binary);
             assert(file.is_open());
             unsigned offset = sizeof(persistence_index);
@@ -126,11 +155,11 @@ public:
                     persistence_index.block_offset[i] = 0;
                 }
             }
-            file.write(reinterpret_cast<char*>(&persistence_index), sizeof(persistence_index));
+            file.write(reinterpret_cast<char *>(&persistence_index), sizeof(persistence_index));
             for (int i = 0; i < MAX_BLOCK_NUM; i++) {
                 if (blocks[i]) {
                     unsigned buffer_size = blocks[i]->storage_size();
-                    char* buffer = new char[buffer_size];
+                    char *buffer = new char[buffer_size];
                     blocks[i]->serialize(buffer);
                     file.write(buffer, buffer_size);
                     delete[] buffer;
@@ -142,7 +171,7 @@ public:
     struct Block : public Serializable {
         BlockIdx idx;
         Set<K, Order()> keys;
-        Persistence *storage;
+        Persistence<> *storage;
 
         Block() : storage(nullptr) {}
 
@@ -172,16 +201,16 @@ public:
 
         virtual void merge_with_right(Block *right, const K &split_key) = 0;
 
-        static Leaf *into_leaf(Block *b) {
+        inline static Leaf *into_leaf(Block *b) {
             assert(b->is_leaf());
-            Leaf *l = dynamic_cast<Leaf *>(b); // TODO: at runtime, we may use reinterpret_cast
+            Leaf *l = reinterpret_cast<Leaf *>(b);
             assert(l);
             return l;
         }
 
-        static Index *into_index(Block *b) {
+        inline static Index *into_index(Block *b) {
             assert(!b->is_leaf());
-            Index *i = dynamic_cast<Index *>(b); // TODO: at runtime, we may use reinterpret_cast
+            Index *i = reinterpret_cast<Index *>(b);
             assert(i);
             return i;
         }
@@ -197,9 +226,8 @@ public:
         Index *split(K &k) override {
             Index *that = new Index;
             this->storage->record(that);
-            unsigned half_order = Order() / 2;
-            that->keys.move_from(this->keys, half_order, half_order);
-            that->children.move_from(this->children, half_order, half_order + 1);
+            that->keys.move_from(this->keys, HalfOrder(), HalfOrder());
+            that->children.move_from(this->children, HalfOrder(), HalfOrder() + 1);
             k = this->keys.pop();
             return that;
         }
@@ -371,9 +399,8 @@ public:
             this->storage->record(that);
             this->next = that->idx;
             that->prev = this->idx;
-            unsigned half_order = Order() / 2;
-            that->keys.move_from(this->keys, half_order, half_order);
-            that->data.move_from(this->data, half_order, half_order);
+            that->keys.move_from(this->keys, HalfOrder(), HalfOrder());
+            that->data.move_from(this->data, HalfOrder(), HalfOrder());
             k = that->keys[0];
             return that;
         }
@@ -442,54 +469,57 @@ public:
     };
 
     class Iterator {
-        BTree* tree;
-        Leaf* leaf;
+        BTree *tree;
+        Leaf *leaf;
         int pos;
     public:
-        Iterator(BTree* tree, Leaf* leaf, int pos) : tree(tree), leaf(leaf), pos(pos) {}
+        Iterator(BTree *tree, Leaf *leaf, int pos) : tree(tree), leaf(leaf), pos(pos) {}
+
         void next() {
             ++pos;
             if (pos == leaf->keys.size) {
                 if (leaf->next) {
                     pos = 0;
-                    leaf = Block::into_leaf(tree->storage.get(leaf->next));
+                    leaf = Block::into_leaf(tree->storage->get(leaf->next));
                 }
             }
         }
 
-        V& get() {
+        V &get() {
             return leaf->data[pos];
         }
     };
 
     Iterator begin() {
-        Block* blk = root;
-        while(!blk->is_leaf()) blk = storage.get(Block::into_index(blk)->children[0]);
+        Block *blk = root;
+        while (!blk->is_leaf()) blk = storage->get(Block::into_index(blk)->children[0]);
         return Iterator(this, Block::into_leaf(blk), 0);
     }
 
     Iterator end() {
-        Block* blk = root;
-        while(!blk->is_leaf()) {
-            Index* idx = Block::into_index(blk);
-            blk = storage.get(idx->children[idx->children.size - 1]);
+        Block *blk = root;
+        while (!blk->is_leaf()) {
+            Index *idx = Block::into_index(blk);
+            blk = storage->get(idx->children[idx->children.size - 1]);
         }
-        Leaf* leaf = Block::into_leaf(blk);
+        Leaf *leaf = Block::into_leaf(blk);
         return Iterator(this, leaf, leaf->keys.size);
     }
 
     Block *root;
-    Persistence storage;
-    const char* path;
+    Persistence<> *storage;
+    const char *path;
 
-    BTree(const char* path = nullptr) : root(nullptr), path(path) {
-        if (path) storage.restore(path);
-        root = storage.get(storage.persistence_index.root_idx);
+    BTree(const char *path = nullptr) : root(nullptr), path(path) {
+        storage = new Persistence<>;
+        if (path) storage->restore(path);
+        root = storage->get(storage->persistence_index.root_idx);
     }
 
     ~BTree() {
-        storage.persistence_index.root_idx = root ? root->idx : 0;
-        if (path) storage.save(path);
+        storage->persistence_index.root_idx = root ? root->idx : 0;
+        if (path) storage->save(path);
+        delete storage;
     }
 
     V *find(const K &k) {
@@ -499,13 +529,13 @@ public:
 
     Leaf *create_leaf() {
         Leaf *block = new Leaf;
-        storage.record(block);
+        storage->record(block);
         return block;
     }
 
     Index *create_index() {
         Index *block = new Index;
-        storage.record(block);
+        storage->record(block);
         return block;
     }
 
@@ -531,8 +561,8 @@ public:
         if (root->keys.size == 0) {
             if (!root->is_leaf()) {
                 Index *prev_root = Block::into_index(root);
-                root = storage.get(prev_root->children[0]);
-                storage.deregister(prev_root);
+                root = storage->get(prev_root->children[0]);
+                storage->deregister(prev_root);
                 delete prev_root;
             }
         }
@@ -560,7 +590,7 @@ public:
             }
             std::cerr << std::endl;
             for (int i = 0; i < index->children.size; i++) {
-                debug(storage.get(index->children[i]));
+                debug(storage->get(index->children[i]));
             }
         }
     }

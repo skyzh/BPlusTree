@@ -6,7 +6,7 @@
 #include "catch.hpp"
 #include <cstdio>
 
-using Map = BTree<int, int>;
+using Map = BTree<int, int, 4>;
 using BigMap = BTree<int, long long, 512>;
 
 TEST_CASE("Storage", "[Persistence]") {
@@ -16,11 +16,11 @@ TEST_CASE("Storage", "[Persistence]") {
         for (int i = 0; i < test_size; i++) {
             m.insert(i, i);
         }
-        REQUIRE (m.storage.block_used() >= 5);
+        REQUIRE (m.storage->block_used() >= 5);
         for (int i = 0; i < test_size; i++) {
             m.remove(i);
         }
-        REQUIRE (m.storage.block_used() == 1);
+        REQUIRE (m.storage->block_used() == 1);
     }
 
     SECTION("should persist data") {
