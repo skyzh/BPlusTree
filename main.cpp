@@ -1,6 +1,7 @@
 #include <iostream>
 #include "BTree.hpp"
 #include <cstdio>
+#include <ctime>
 
 double update_clock() {
     static clock_t start = std::clock();
