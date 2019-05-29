@@ -177,7 +177,7 @@ public:
 
         virtual ~Block() {}
 
-        virtual constexpr bool is_leaf() const = 0;
+        virtual bool is_leaf() const = 0;
 
         virtual Block *split(K &split_key) = 0;
 

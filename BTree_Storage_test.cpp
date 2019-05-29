@@ -9,7 +9,7 @@
 using Map = BTree<int, int, 4>;
 using BigMap = BTree<int, long long, 512>;
 
-TEST_CASE("Storage", "[Persistence]") {
+TEST_CASE("Storage", "[Storage]") {
     SECTION("should hold enough space") {
         Map m;
         const int test_size = 16;

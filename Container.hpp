@@ -8,14 +8,7 @@
 #include <cassert>
 #include <cstring>
 
-class Serializable {
-public:
-    virtual unsigned storage_size() const = 0;
-
-    virtual void serialize(char *x) const = 0;
-
-    virtual void deserialize(const char *x) = 0;
-};
+#include "Persistence.hpp"
 
 template<typename U>
 struct Allocator {
