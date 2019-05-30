@@ -13,7 +13,7 @@ double update_clock() {
 
 BTree<int, int> *m;
 
-const int test_size = 1e8;
+const int test_size = 1e7;
 int test_data[test_size];
 
 void generate_test_data() {
@@ -80,12 +80,10 @@ void test_no_persistence() {
         m->insert(test_data[i], test_data[i]);
     }
     std::cout << "Insertion: " << update_clock() << std::endl;
-    m->storage->stat.stat();
     for (int i = 0; i < test_size; i++) {
         m->find(i);
     }
     std::cout << "Find: " << update_clock() << std::endl;
-    m->storage->stat.stat();
     for (int i = 0; i < test_size; i++) {
         m->remove(test_data[i]);
     }
@@ -96,9 +94,12 @@ void test_no_persistence() {
 
 int main() {
     remove("data.db");
+
     generate_test_data();
     std::cout << "Generation complete" << std::endl;
     test_insert();
     test_remove();
+
+    // test_no_persistence();
     return 0;
 }
