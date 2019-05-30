@@ -8,21 +8,9 @@
 
 using Map = BTree<int, int, 4>;
 using BigMap = BTree<int, long long, 512>;
+using BigLimitedMap = BTree<int, long long, 512, 32>;
 
 TEST_CASE("Storage", "[Storage]") {
-    SECTION("should hold enough space") {
-        Map m;
-        const int test_size = 16;
-        for (int i = 0; i < test_size; i++) {
-            m.insert(i, i);
-        }
-        REQUIRE (m.storage->block_used() >= 5);
-        for (int i = 0; i < test_size; i++) {
-            m.remove(i);
-        }
-        REQUIRE (m.storage->block_used() == 1);
-    }
-
     SECTION("should persist data") {
         remove("persist.db");
         const int test_size = 16;
@@ -35,6 +23,7 @@ TEST_CASE("Storage", "[Storage]") {
         {
             Map m("persist.db");
             for (int i = 0; i < test_size; i++) {
+                REQUIRE (m.find(i));
                 REQUIRE (*m.find(i) == i);
                 m.remove(i);
             }
@@ -66,6 +55,31 @@ TEST_CASE("Storage", "[Storage]") {
         }
         {
             BigMap m("persist_long_long.db");
+            for (int i = 0; i < test_size; i++) {
+                REQUIRE (m.find(i) == nullptr);
+            }
+        }
+        remove("persist_long_long.db");
+    }
+
+    SECTION("should persist even more data when memory is small") {
+        const int test_size = 100000;
+        remove("persist_long_long.db");
+        {
+            BigLimitedMap m("persist_long_long.db");
+            for (int i = 0; i < test_size; i++) {
+                m.insert(i, i);
+            }
+        }
+        {
+            BigLimitedMap m("persist_long_long.db");
+            for (int i = 0; i < test_size; i++) {
+                REQUIRE (*m.find(i) == i);
+                m.remove(i);
+            }
+        }
+        {
+            BigLimitedMap m("persist_long_long.db");
             for (int i = 0; i < test_size; i++) {
                 REQUIRE (m.find(i) == nullptr);
             }

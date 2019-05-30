@@ -6,16 +6,20 @@
 #define BPLUSTREE_BTREE_HPP
 
 #include "Container.hpp"
+#include "Persistence.hpp"
 #include <cassert>
 #include <iostream>
 #include <fstream>
 
-template<typename K, typename V, unsigned Ord = 4 * 1024 / (sizeof(K) + sizeof(V))>
+template<typename K, typename V,
+        unsigned Ord = 4 * 1024 / (sizeof(K) + sizeof(V)),
+        unsigned Max_Page_In_Memory = 8 * 1024 * 1024 / Ord / sizeof(K) * 1024>
 class BTree {
 public:
     using BlockIdx = unsigned;
 
     static constexpr unsigned Order() { return Ord; }
+
     static constexpr unsigned HalfOrder() { return Order() >> 1; }
 
     /*
@@ -35,143 +39,12 @@ public:
 
     class Block;
 
-    template<
-            unsigned MAX_BLOCK_NUM = 8388608,
-            unsigned INMEMORY = 256 * 1024 * 1024 / Order() / sizeof(K) / 4>
-    struct Persistence {
-        static const unsigned VERSION = 4;
-        Block *blocks[MAX_BLOCK_NUM];
-        int offset;
-        int blk;
-        bool managed;
-
-        struct PersistenceIndex {
-            unsigned version;
-            unsigned magic_key;
-            BlockIdx root_idx;
-            unsigned block_offset[MAX_BLOCK_NUM];
-            bool is_leaf[MAX_BLOCK_NUM];
-
-            static unsigned constexpr MAGIC_KEY() {
-                return sizeof(K) * 233
-                       + sizeof(V) * 23333
-                       + Ord * 2333333
-                       + MAX_BLOCK_NUM * 23;
-            }
-        } persistence_index;
-
-        struct Stat {
-            unsigned total_access;
-            unsigned create;
-            unsigned destroy;
-            void stat() {
-                std::cout << total_access << " " << create << " " << destroy << std::endl;
-            }
-        } stat;
-
-        Persistence(bool managed = true) : offset(16), managed(managed) {
-            memset(blocks, 0, sizeof(blocks));
-            memset(persistence_index.block_offset, 0, sizeof(persistence_index.block_offset));
-            persistence_index.root_idx = 0;
-            persistence_index.version = VERSION;
-            persistence_index.magic_key = PersistenceIndex::MAGIC_KEY();
-            blk = offset;
-            memset(&stat, 0, sizeof(stat));
-        };
-
-        ~Persistence() {
-            if (managed) for (int i = 0; i < MAX_BLOCK_NUM; i++) if (blocks[i] != nullptr) delete blocks[i];
-        }
-
-        Block *get(BlockIdx idx) {
-            ++stat.total_access;
-            return blocks[idx];
-        }
-
-        unsigned find_idx() {
-            while (blocks[blk] != nullptr) {
-                ++blk;
-                if (blk >= MAX_BLOCK_NUM) blk = offset;
-            }
-            return blk;
-        }
-
-        void record(Block *block) {
-            unsigned idx = find_idx();
-            block->idx = idx;
-            block->storage = this;
-            blocks[idx] = block;
-            ++stat.create;
-        }
-
-        void deregister(Block *block) {
-            blocks[block->idx] = nullptr;
-            block->idx = 0;
-            ++stat.destroy;
-        }
-
-        unsigned block_used() {
-            unsigned cnt = 0;
-            for (int i = 0; i < MAX_BLOCK_NUM; i++) if (blocks[i] != nullptr) ++cnt;
-            return cnt;
-        }
-
-        bool restore(const char *path) {
-            std::ifstream file(path, std::ios::in | std::ios::binary);
-            if (!file.is_open()) return false;
-            file.read(reinterpret_cast<char *>(&persistence_index), sizeof(persistence_index));
-            if (persistence_index.version != VERSION) return false;
-            if (persistence_index.magic_key != PersistenceIndex::MAGIC_KEY()) return false;
-            for (int i = 0; i < MAX_BLOCK_NUM; i++) {
-                if (persistence_index.block_offset[i]) {
-                    Block *block;
-                    if (persistence_index.is_leaf[i]) block = new Leaf; else block = new Index;
-                    block->storage = this;
-                    block->idx = i;
-                    unsigned buffer_size = block->storage_size();
-                    char *buffer = new char[buffer_size];
-                    file.read(buffer, buffer_size);
-                    block->deserialize(buffer);
-                    delete[] buffer;
-                    blocks[i] = block;
-                } else {
-                    blocks[i] = nullptr;
-                }
-            }
-            return true;
-        }
-
-        void save(const char *path) {
-            std::ofstream file(path, std::ios::out | std::ios::trunc | std::ios::binary);
-            assert(file.is_open());
-            unsigned offset = sizeof(persistence_index);
-            for (int i = 0; i < MAX_BLOCK_NUM; i++) {
-                auto block = blocks[i];
-                if (block) {
-                    persistence_index.block_offset[i] = offset;
-                    persistence_index.is_leaf[i] = block->is_leaf();
-                    offset += block->storage_size();
-                } else {
-                    persistence_index.block_offset[i] = 0;
-                }
-            }
-            file.write(reinterpret_cast<char *>(&persistence_index), sizeof(persistence_index));
-            for (int i = 0; i < MAX_BLOCK_NUM; i++) {
-                if (blocks[i]) {
-                    unsigned buffer_size = blocks[i]->storage_size();
-                    char *buffer = new char[buffer_size];
-                    blocks[i]->serialize(buffer);
-                    file.write(buffer, buffer_size);
-                    delete[] buffer;
-                }
-            }
-        }
-    };
+    using BPersistence = Persistence<Block, Index, Leaf, 8388608, Max_Page_In_Memory>;
 
     struct Block : public Serializable {
         BlockIdx idx;
         Set<K, Order()> keys;
-        Persistence<> *storage;
+        BPersistence *storage;
 
         Block() : storage(nullptr) {}
 
@@ -507,18 +380,16 @@ public:
     }
 
     Block *root;
-    Persistence<> *storage;
+    BPersistence *storage;
     const char *path;
 
     BTree(const char *path = nullptr) : root(nullptr), path(path) {
-        storage = new Persistence<>;
-        if (path) storage->restore(path);
-        root = storage->get(storage->persistence_index.root_idx);
+        storage = new BPersistence(path);
+        root = storage->get(storage->persistence_index->root_idx);
     }
 
     ~BTree() {
-        storage->persistence_index.root_idx = root ? root->idx : 0;
-        if (path) storage->save(path);
+        storage->persistence_index->root_idx = root ? root->idx : 0;
         delete storage;
     }
 
@@ -541,6 +412,7 @@ public:
 
     void insert(const K &k, const V &v) {
         if (!root) root = create_leaf();
+        storage->get(root->idx);
         root->insert(k, v);
         if (root->should_split()) {
             K k;
@@ -552,10 +424,12 @@ public:
             idx->keys.append(k);
             root = idx;
         }
+        storage->swap_out_pages();
     }
 
     bool remove(const K &k) {
         if (!root) return false;
+        storage->get(root->idx);
         bool result = root->remove(k);
         if (!result) return false;
         if (root->keys.size == 0) {

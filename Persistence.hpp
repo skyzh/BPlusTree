@@ -54,7 +54,6 @@ struct Persistence {
     Block **pages;
 
     struct Stat {
-        unsigned total_access;
         unsigned create;
         unsigned destroy;
         unsigned access_cache_hit;
@@ -64,10 +63,11 @@ struct Persistence {
         unsigned swap_out;
 
         void stat() {
-            std::cout << total_access << " " << create << " " << destroy << std::endl;
+            std::cout << "Access: " << access_cache_hit << "/" << access_cache_miss + access_cache_hit << " " << double(access_cache_hit) / (access_cache_miss + access_cache_hit) * 100 << "%" << std::endl
+                      << "Create: " << create << " " << destroy << " " << swap_out << std::endl;
         }
 
-        Stat() : total_access(0), create(0), destroy(0),
+        Stat() : create(0), destroy(0),
                  access_cache_hit(0), access_cache_miss(0),
                  request_read(0), request_write(0), swap_out(0) {}
     } stat;
@@ -84,8 +84,6 @@ struct Persistence {
         }
         assert(persistence_index->version == VERSION);
         assert(persistence_index->magic_key == PersistenceIndex::MAGIC_KEY());
-        std::clog << "[Info] load or initialized successfully, version=" << persistence_index->version << ", "
-                  << "magic_key=" << std::ios::hex << persistence_index->magic_key << std::endl;
     }
 
     void offload_page(unsigned page_id) {
@@ -104,6 +102,8 @@ struct Persistence {
         pages[page_id] = nullptr;
 
         lru.remove(lru_nodes[page_id]);
+        delete lru_nodes[page_id];
+        lru_nodes[page_id] = nullptr;
     }
 
     Block *load_page(unsigned page_id) {
@@ -127,6 +127,9 @@ struct Persistence {
         page->deserialize(buffer);
         delete[] buffer;
         pages[page_id] = page;
+        page->storage = this;
+        page->idx = page_id;
+        assert(lru_nodes[page_id] == nullptr);
         lru_nodes[page_id] = lru.put(page_id);
         return page;
     }
@@ -161,6 +164,7 @@ struct Persistence {
         save();
         f.close();
         delete[] pages;
+        delete[] lru_nodes;
         delete persistence_index;
     }
 
@@ -176,6 +180,7 @@ struct Persistence {
         pages[page_id] = block;
         persistence_index->is_leaf[page_id] = block->is_leaf();
         persistence_index->page_offset[page_id] = offset;
+        assert(lru_nodes[page_id] == nullptr);
         lru_nodes[page_id] = lru.put(page_id);
     }
 
@@ -194,6 +199,7 @@ struct Persistence {
     }
 
     void deregister(Block *block) {
+        lru.remove(lru_nodes[block->idx]);
         pages[block->idx] = nullptr;
         block->idx = 0;
         ++stat.destroy;

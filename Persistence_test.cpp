@@ -59,6 +59,17 @@ MockLeaf* make_leaf() {
 }
 
 TEST_CASE("Persistence", "[Persistence]") {
+    SECTION("should occupy storage") {
+        MPersistence persistence;
+        MockLeaf* leaf1 = make_leaf();
+        persistence.record(leaf1);
+        REQUIRE (leaf1->storage == &persistence);
+        unsigned idx = leaf1->idx;
+        persistence.offload_page(idx);
+        leaf1 = dynamic_cast<MockLeaf*>(persistence.get(idx));
+        REQUIRE (leaf1->storage == &persistence);
+    }
+
     SECTION("should occupy different page id") {
         MPersistence persistence;
         MockLeaf leaf1;
@@ -114,6 +125,8 @@ TEST_CASE("Persistence", "[Persistence]") {
             REQUIRE(leaf);
             MockIndex *index = dynamic_cast<MockIndex *>(persistence.get(index_idx));
             REQUIRE(index);
+            REQUIRE(leaf->idx == leaf_idx);
+            REQUIRE(index->idx == index_idx);
             for (int i = 0; i < leaf->data.capacity(); i++) REQUIRE(leaf->data[i] == i);
             for (int i = 0; i < index->data.capacity(); i++) REQUIRE(index->data[i] == i);
         }

@@ -37,11 +37,9 @@ struct LRU {
     void remove(Node* ptr) {
         if (ptr->prev) ptr->prev->next = ptr->next; else {
             head = ptr->next;
-            if (head) head->prev = nullptr;
         }
         if (ptr->next) ptr->next->prev = ptr->prev; else {
             tail = ptr->prev;
-            if (tail) tail->next = nullptr;
         }
         --size;
     }
@@ -61,6 +59,19 @@ struct LRU {
         remove(tail);
         delete ptr;
         return idx;
+    }
+
+    void debug() {
+        unsigned last_idx;
+        for (auto ptr = head; ptr != nullptr; ptr = ptr->next) {
+            if (ptr->idx == last_idx) {
+                std::clog << "Cycle detected!" << std::endl;
+                return;
+            }
+            std::clog << ptr->idx << " ";
+            last_idx = ptr->idx;
+        }
+        std::clog << std::endl;
     }
 };
 

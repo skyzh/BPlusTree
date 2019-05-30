@@ -13,12 +13,26 @@ double update_clock() {
 
 BTree<int, int> *m;
 
+const int test_size = 1e8;
+int test_data[test_size];
+
+void generate_test_data() {
+    for (int i = 0; i < test_size; i++) test_data[i] = i;
+    for (int i = test_size - 1; i > 0; i--) {
+        int j = rand() % (i + 1);
+        std::swap(test_data[i], test_data[j]);
+    }
+}
+
 void test_insert() {
     m = new BTree<int, int>("data.db");
-    const int test_size = 1e7;
     update_clock();
     for (int i = 0; i < test_size; i++) {
-        m->insert(i, i);
+        if (i % 10000000 == 0) {
+            std::cout << i << "/" << test_size << std::endl;
+            m->storage->stat.stat();
+        }
+        m->insert(test_data[i], test_data[i]);
     }
     std::cout << "Insertion: " << update_clock() << std::endl;
     m->storage->stat.stat();
@@ -28,14 +42,21 @@ void test_insert() {
 
 void test_remove() {
     m = new BTree<int, int>("data.db");
-    const int remove_size = 1e7;
     std::cout << "Read: " << update_clock() << std::endl;
-    for (int i = 0; i < remove_size; i++) {
-        m->find(i);
+    for (int i = 0; i < test_size; i++) {
+        if (i % 10000000 == 0) {
+            std::cout << i << "/" << test_size << std::endl;
+            m->storage->stat.stat();
+        }
+        m->find(test_data[i]);
     }
     std::cout << "Find: " << update_clock() << std::endl;
-    for (int i = 0; i < remove_size; i++) {
-        m->remove(i);
+    for (int i = 0; i < test_size; i++) {
+        if (i % 10000000 == 0) {
+            std::cout << i << "/" << test_size << std::endl;
+            m->storage->stat.stat();
+        }
+        m->remove(test_data[i]);
     }
     std::cout << "Removal: " << update_clock() << std::endl;
     m->storage->stat.stat();
@@ -75,6 +96,9 @@ void test_no_persistence() {
 
 int main() {
     remove("data.db");
-    test_no_persistence();
+    generate_test_data();
+    std::cout << "Generation complete" << std::endl;
+    test_insert();
+    test_remove();
     return 0;
 }
