@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <cstring>
+#include "LRU.hpp"
 
 class Serializable {
 public:
@@ -20,7 +21,7 @@ public:
     static constexpr bool is_serializable() { return true; }
 };
 
-template<typename Block, typename Index, typename Leaf, unsigned MAX_PAGES = 32>
+template<typename Block, typename Index, typename Leaf, unsigned MAX_PAGES = 1048576, unsigned MAX_IN_MEMORY = 65536>
 struct Persistence {
     const char *path;
     std::fstream f;
@@ -56,13 +57,23 @@ struct Persistence {
         unsigned total_access;
         unsigned create;
         unsigned destroy;
+        unsigned access_cache_hit;
+        unsigned access_cache_miss;
+        unsigned request_write;
+        unsigned request_read;
+        unsigned swap_out;
 
         void stat() {
             std::cout << total_access << " " << create << " " << destroy << std::endl;
         }
 
-        Stat() : total_access(0), create(0), destroy(0) {}
+        Stat() : total_access(0), create(0), destroy(0),
+                 access_cache_hit(0), access_cache_miss(0),
+                 request_read(0), request_write(0), swap_out(0) {}
     } stat;
+
+    LRU<> lru;
+    LRU<>::Node **lru_nodes;
 
     void restore() {
         if (!path) return;
@@ -77,7 +88,7 @@ struct Persistence {
                   << "magic_key=" << std::ios::hex << persistence_index->magic_key << std::endl;
     }
 
-    void write_page(unsigned page_id) {
+    void offload_page(unsigned page_id) {
         if (!path) return;
         Block *page = pages[page_id];
         unsigned buffer_size = page->storage_size();
@@ -88,16 +99,21 @@ struct Persistence {
         f.write(buffer, buffer_size);
 
         delete[] buffer;
-    }
 
-    void offload_page(unsigned page_id) {
         delete pages[page_id];
         pages[page_id] = nullptr;
+
+        lru.remove(lru_nodes[page_id]);
     }
 
     Block *load_page(unsigned page_id) {
-        if (pages[page_id]) return pages[page_id];
+        if (pages[page_id]) {
+            ++stat.access_cache_hit;
+            lru.get(lru_nodes[page_id]);
+            return pages[page_id];
+        }
         if (!path) return nullptr;
+        ++stat.access_cache_miss;
         Block *page;
         if (!persistence_index->page_offset[page_id]) return nullptr;
         if (persistence_index->is_leaf[page_id])
@@ -111,6 +127,7 @@ struct Persistence {
         page->deserialize(buffer);
         delete[] buffer;
         pages[page_id] = page;
+        lru_nodes[page_id] = lru.put(page_id);
         return page;
     }
 
@@ -119,7 +136,7 @@ struct Persistence {
         f.seekp(0, f.beg);
         f.write(reinterpret_cast<char *>(persistence_index), sizeof(PersistenceIndex));
         for (unsigned i = 0; i < MAX_PAGES; i++) {
-            if (pages[i]) write_page(i);
+            if (pages[i]) offload_page(i);
         }
     }
 
@@ -128,7 +145,9 @@ struct Persistence {
         assert(Leaf::is_serializable());
         persistence_index = new PersistenceIndex;
         pages = new Block *[MAX_PAGES];
+        lru_nodes = new LRU<>::Node *[MAX_PAGES];
         memset(pages, 0, sizeof(Block *) * MAX_PAGES);
+        memset(lru_nodes, 0, sizeof(LRU<>::Node *) * MAX_PAGES);
         if (path) {
             f.open(path, std::ios::in | std::ios::out | std::ios::ate | std::ios::binary);
             if (f)
@@ -140,8 +159,6 @@ struct Persistence {
 
     ~Persistence() {
         save();
-        for (unsigned i = 0; i < MAX_PAGES; i++)
-            if (pages[i]) offload_page(i);
         f.close();
         delete[] pages;
         delete persistence_index;
@@ -159,6 +176,15 @@ struct Persistence {
         pages[page_id] = block;
         persistence_index->is_leaf[page_id] = block->is_leaf();
         persistence_index->page_offset[page_id] = offset;
+        lru_nodes[page_id] = lru.put(page_id);
+    }
+
+    void swap_out_pages() {
+        while (lru.size > MAX_IN_MEMORY) {
+            unsigned idx = lru.get_lru();
+            offload_page(idx);
+            ++stat.swap_out;
+        }
     }
 
     void record(Block *block) {

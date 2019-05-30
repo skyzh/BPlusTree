@@ -7,15 +7,13 @@
 #include "Persistence.hpp"
 #include "Container.hpp"
 
-using VectorA = Vector<int, 20>;
-
 class MockBlock;
 
 class MockIndex;
 
 class MockLeaf;
 
-using MPersistence = Persistence<MockBlock, MockIndex, MockLeaf>;
+using MPersistence = Persistence<MockBlock, MockIndex, MockLeaf, 32, 4>;
 
 struct MockBlock : public Serializable {
     unsigned idx;
@@ -53,6 +51,12 @@ struct MockIndex : public MockLeaf {
     void deserialize(const char *x) override { this->data.deserialize(x); }
 
 };
+
+MockLeaf* make_leaf() {
+    MockLeaf *leaf = new MockLeaf;
+    for (int i = 0; i < leaf->data.capacity(); i++) leaf->data.append(i);
+    return leaf;
+}
 
 TEST_CASE("Persistence", "[Persistence]") {
     SECTION("should occupy different page id") {
@@ -113,5 +117,41 @@ TEST_CASE("Persistence", "[Persistence]") {
             for (int i = 0; i < leaf->data.capacity(); i++) REQUIRE(leaf->data[i] == i);
             for (int i = 0; i < index->data.capacity(); i++) REQUIRE(index->data[i] == i);
         }
+    }
+
+    SECTION("should correctly offload pages") {
+        {
+            MockLeaf *leaf = new MockLeaf;
+            MockIndex *index = new MockIndex;
+            for (int i = 0; i < leaf->data.capacity(); i++) leaf->data.append(i);
+            for (int i = 0; i < index->data.capacity(); i++) index->data.append(i);
+            MPersistence persistence("p1.test");
+            persistence.record(leaf);
+            persistence.record(index);
+            unsigned leaf_idx = leaf->idx;
+            unsigned index_idx = index->idx;
+            persistence.offload_page(leaf_idx);
+            persistence.offload_page(index_idx);
+            leaf = dynamic_cast<MockLeaf *>(persistence.get(leaf_idx));
+            index = dynamic_cast<MockIndex *>(persistence.get(index_idx));
+            for (int i = 0; i < leaf->data.capacity(); i++) REQUIRE(leaf->data[i] == i);
+            for (int i = 0; i < index->data.capacity(); i++) REQUIRE(index->data[i] == i);
+        }
+    }
+
+    SECTION("should swap out pages") {
+        remove("p_swap.test");
+        MPersistence persistence("p_swap.test");
+        persistence.record(make_leaf());
+        persistence.record(make_leaf());
+        persistence.record(make_leaf());
+        persistence.record(make_leaf());
+        persistence.record(make_leaf());
+        persistence.record(make_leaf());
+        persistence.record(make_leaf());
+        persistence.record(make_leaf());
+        persistence.swap_out_pages();
+        REQUIRE(persistence.stat.swap_out == 4);
+        remove("p_swap.test");
     }
 }
