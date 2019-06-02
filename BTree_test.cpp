@@ -260,4 +260,22 @@ TEST_CASE("Iterator", "[BTree]") {
             iter.next();
         }
     }
+
+    SECTION("should get data after removal") {
+        BTree<int, int, 512> m;
+        const int test_size = 100000;
+        const int remove_size = 5000;
+        int test_data[test_size];
+        for (int i = 0; i < test_size; i++) {
+            m.insert(i, i);
+        }
+        for (int i = 0; i < remove_size; i++) {
+            m.remove(i);
+        }
+        auto iter = m.begin();
+        for (int i = remove_size; i < test_size; i++) {
+            REQUIRE (iter.get() == i);
+            iter.next();
+        }
+    }
 }

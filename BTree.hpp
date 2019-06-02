@@ -296,6 +296,7 @@ public:
             Leaf *left = this->into_leaf(_left);
             this->keys.move_insert_from(left->keys, 0, left->keys.size, 0);
             this->data.move_insert_from(left->data, 0, left->data.size, 0);
+            this->prev = left->prev;
             this->storage->deregister(left);
         };
 
@@ -303,6 +304,7 @@ public:
             Leaf *right = this->into_leaf(_right);
             this->keys.move_insert_from(right->keys, 0, right->keys.size, this->keys.size);
             this->data.move_insert_from(right->data, 0, right->data.size, this->data.size);
+            this->next = right->next;
             this->storage->deregister(right);
         };
 
