@@ -12,7 +12,7 @@
 #include <fstream>
 
 template<typename K, typename V,
-        unsigned Ord = 4 * 1024 / (sizeof(K) + sizeof(V)),
+        unsigned Ord = 2 * 1024 / sizeof(K),
         unsigned Max_Page_In_Memory = 8 * 1024 * 1024 / Ord / sizeof(K) * 1024>
 class BTree {
 public:

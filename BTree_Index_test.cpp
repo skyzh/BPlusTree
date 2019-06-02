@@ -5,7 +5,7 @@
 #include "BTree.hpp"
 #include "catch.hpp"
 
-using Map = BTree<int, int, 4>;
+using Map = BTree<int, int, 4, 65536>;
 
 
 TEST_CASE("Index", "[BTree]") {

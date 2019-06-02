@@ -6,8 +6,8 @@
 #include "catch.hpp"
 #include <cstdio>
 
-using Map = BTree<int, int, 4>;
-using BigMap = BTree<int, long long, 512>;
+using Map = BTree<int, int, 4, 65536>;
+using BigMap = BTree<int, long long, 512, 65536>;
 using BigLimitedMap = BTree<int, long long, 512, 32>;
 
 TEST_CASE("Storage", "[Storage]") {

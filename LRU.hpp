@@ -5,24 +5,16 @@
 #ifndef BPLUSTREE_LRU_HPP
 #define BPLUSTREE_LRU_HPP
 
-template<typename Idx = unsigned>
-struct LRU {
+#include <cstring>
+
+template<unsigned Cap, typename Idx = unsigned>
+class LRU {
     struct Node {
         Idx idx;
         Node *prev, *next;
 
         Node(Idx idx) : idx(idx), prev(nullptr), next(nullptr) {}
     } *head, *tail;
-
-    unsigned size;
-
-    LRU() : head(nullptr), tail(nullptr), size(0) {}
-
-    Node *put(Idx idx) {
-        Node *ptr = new Node(idx);
-        push(ptr);
-        return ptr;
-    }
 
     void push(Node* ptr) {
         if (size == 0) { head = tail = ptr; }
@@ -41,24 +33,49 @@ struct LRU {
         if (ptr->next) ptr->next->prev = ptr->prev; else {
             tail = ptr->prev;
         }
+        ptr->next = ptr->prev = nullptr;
         --size;
     }
 
-    void get(Node *ptr) {
-        remove(ptr);
-        push(ptr);
+public:
+    unsigned size;
+
+    Node** nodes;
+
+    LRU() : head(nullptr), tail(nullptr), size(0) {
+        nodes = new Node*[Cap];
+        memset(nodes, 0, sizeof(Node*) * Cap);
     }
 
-    Idx get_lru() {
-        return tail->idx;
+    ~LRU() {
+        delete[] nodes;
+    }
+
+    void put(Idx idx) {
+        assert(idx < Cap);
+        assert(nodes[idx] == nullptr);
+        Node *ptr = new Node(idx);
+        push(ptr);
+        nodes[idx] = ptr;
+    }
+
+    void get(Idx idx) {
+        assert(idx < Cap);
+        assert(nodes[idx]);
+        remove(nodes[idx]);
+        push(nodes[idx]);
     }
 
     Idx expire() {
-        Idx idx = tail->idx;
-        Node *ptr = tail;
-        remove(tail);
-        delete ptr;
-        return idx;
+        return tail->idx;
+    }
+
+    void remove(Idx idx) {
+        assert(idx < Cap);
+        assert(nodes[idx]);
+        remove(nodes[idx]);
+        delete nodes[idx];
+        nodes[idx] = nullptr;
     }
 
     void debug() {

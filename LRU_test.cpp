@@ -9,18 +9,21 @@
 
 TEST_CASE("LRU", "[Persistence]") {
     SECTION("should expire correctly") {
-        LRU<> lru;
-        using Node = LRU<>::Node;
-        Node *ptr0 = lru.put(0);
-        Node *ptr1 = lru.put(1);
-        Node *ptr2 = lru.put(2);
-        Node *ptr3 = lru.put(3);
+        LRU<64> lru;
+        lru.put(0);
+        lru.put(1);
+        lru.put(2);
+        lru.put(3);
         REQUIRE(lru.expire() == 0);
-        lru.get(ptr2);
+        lru.remove(lru.expire());
+        lru.get(2);
         REQUIRE(lru.expire() == 1);
-        lru.get(ptr3);
+        lru.remove(lru.expire());
+        lru.get(3);
         REQUIRE(lru.expire() == 2);
+        lru.remove(lru.expire());
         REQUIRE(lru.expire() == 3);
+        lru.remove(lru.expire());
         REQUIRE(lru.size == 0);
         lru.put(0);
         REQUIRE(lru.expire() == 0);

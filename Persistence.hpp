@@ -63,17 +63,20 @@ struct Persistence {
         unsigned swap_out;
 
         void stat() {
-            std::cout << "Access: " << access_cache_hit << "/" << access_cache_miss + access_cache_hit << " " << double(access_cache_hit) / (access_cache_miss + access_cache_hit) * 100 << "%" << std::endl
-                      << "Create: " << create << " " << destroy << " " << swap_out << std::endl;
+            printf("    access hit/total %d/%d %.5f%%\n",
+                   access_cache_hit,
+                   access_cache_miss + access_cache_hit,
+                   double(access_cache_hit) / (access_cache_miss + access_cache_hit) * 100);
+            printf("    create/destroy/swap_in/out %d %d %d %d\n", create, destroy, access_cache_miss, swap_out);
         }
 
         Stat() : create(0), destroy(0),
-                 access_cache_hit(0), access_cache_miss(0),
+                 access_cache_hit(1), access_cache_miss(0),
                  request_read(0), request_write(0), swap_out(0) {}
     } stat;
 
-    LRU<> lru;
-    LRU<>::Node **lru_nodes;
+    using BLRU = LRU<MAX_PAGES>;
+    BLRU lru;
 
     void restore() {
         if (!path) return;
@@ -101,15 +104,13 @@ struct Persistence {
         delete pages[page_id];
         pages[page_id] = nullptr;
 
-        lru.remove(lru_nodes[page_id]);
-        delete lru_nodes[page_id];
-        lru_nodes[page_id] = nullptr;
+        lru.remove(page_id);
     }
 
     Block *load_page(unsigned page_id) {
         if (pages[page_id]) {
             ++stat.access_cache_hit;
-            lru.get(lru_nodes[page_id]);
+            lru.get(page_id);
             return pages[page_id];
         }
         if (!path) return nullptr;
@@ -129,8 +130,7 @@ struct Persistence {
         pages[page_id] = page;
         page->storage = this;
         page->idx = page_id;
-        assert(lru_nodes[page_id] == nullptr);
-        lru_nodes[page_id] = lru.put(page_id);
+        lru.put(page_id);
         return page;
     }
 
@@ -148,9 +148,7 @@ struct Persistence {
         assert(Leaf::is_serializable());
         persistence_index = new PersistenceIndex;
         pages = new Block *[MAX_PAGES];
-        lru_nodes = new LRU<>::Node *[MAX_PAGES];
         memset(pages, 0, sizeof(Block *) * MAX_PAGES);
-        memset(lru_nodes, 0, sizeof(LRU<>::Node *) * MAX_PAGES);
         if (path) {
             f.open(path, std::ios::in | std::ios::out | std::ios::ate | std::ios::binary);
             if (f)
@@ -164,7 +162,6 @@ struct Persistence {
         save();
         f.close();
         delete[] pages;
-        delete[] lru_nodes;
         delete persistence_index;
     }
 
@@ -180,13 +177,12 @@ struct Persistence {
         pages[page_id] = block;
         persistence_index->is_leaf[page_id] = block->is_leaf();
         persistence_index->page_offset[page_id] = offset;
-        assert(lru_nodes[page_id] == nullptr);
-        lru_nodes[page_id] = lru.put(page_id);
+        lru.put(page_id);
     }
 
     void swap_out_pages() {
         while (lru.size > MAX_IN_MEMORY) {
-            unsigned idx = lru.get_lru();
+            unsigned idx = lru.expire();
             offload_page(idx);
             ++stat.swap_out;
         }
@@ -199,7 +195,7 @@ struct Persistence {
     }
 
     void deregister(Block *block) {
-        lru.remove(lru_nodes[block->idx]);
+        lru.remove(block->idx);
         pages[block->idx] = nullptr;
         block->idx = 0;
         ++stat.destroy;

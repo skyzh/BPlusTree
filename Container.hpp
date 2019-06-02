@@ -125,21 +125,31 @@ template<typename T, unsigned Cap>
 class Set : public Vector<T, Cap> {
 public:
     unsigned lower_bound(const T &d) {
-        unsigned L = 0, R = this->size;
-        while (L < R) {
-            unsigned M = L + ((R - L) >> 1);
-            if (this->x[M] < d) L = M + 1; else R = M;
+        // https://academy.realm.io/posts/how-we-beat-cpp-stl-binary-search/
+        unsigned low = 0, size = this->size;
+        while (size > 0) {
+            unsigned half = size / 2;
+            unsigned other_half = size - half;
+            unsigned probe = low + half;
+            unsigned other_low = low + other_half;
+            size = half;
+            low = this->x[probe] < d ? other_low : low;
         }
-        return L;
+        return low;
     }
 
     unsigned upper_bound(const T &d) {
-        unsigned L = 0, R = this->size;
-        while (L < R) {
-            unsigned M = L + ((R - L) >> 1);
-            if (this->x[M] <= d) L = M + 1; else R = M;
+        // https://academy.realm.io/posts/how-we-beat-cpp-stl-binary-search/
+        unsigned low = 0, size = this->size;
+        while (size > 0) {
+            unsigned half = size / 2;
+            unsigned other_half = size - half;
+            unsigned probe = low + half;
+            unsigned other_low = low + other_half;
+            size = half;
+            low = this->x[probe] <= d ? other_low : low;
         }
-        return L;
+        return low;
     }
 
     unsigned insert(const T &d) {
