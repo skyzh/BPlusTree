@@ -6,6 +6,9 @@ A simple B+ tree implemented in cpp. Fully unit-tested.
 
 ## Implementations
 
+`BTree.cpp` is automatically generated with source file from `src/` folder.
+For original implementation, you should refer to `src/`.
+
 Container: some basic containers implementation including `Vector` and `Set`.
 
 LRU: least recently used cache, eliminating memory usage when processing huge chunks.

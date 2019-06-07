@@ -76,19 +76,6 @@ namespace sjtu {
             delete nodes[idx];
             nodes[idx] = nullptr;
         }
-
-        void debug() {
-            unsigned last_idx;
-            for (auto ptr = head; ptr != nullptr; ptr = ptr->next) {
-                if (ptr->idx == last_idx) {
-                    std::clog << "Cycle detected!" << std::endl;
-                    return;
-                }
-                std::clog << ptr->idx << " ";
-                last_idx = ptr->idx;
-            }
-            std::clog << std::endl;
-        }
     };
 
     class Serializable {
@@ -163,7 +150,6 @@ namespace sjtu {
             if (!path) return;
             f.seekg(0, f.beg);
             if (!f.read(reinterpret_cast<char *>(persistence_index), sizeof(PersistenceIndex))) {
-                std::clog << "[Warning] failed to restore from " << path << " " << f.gcount() << std::endl;
                 f.clear();
             }
             assert(persistence_index->version == VERSION);
@@ -849,32 +835,6 @@ namespace sjtu {
                 }
             }
             return true;
-        }
-
-        void debug(Block *block) {
-            std::cerr << "Block ID: " << block->idx << " ";
-            if (block->is_leaf()) std::cerr << "(Leaf)" << std::endl;
-            else std::cerr << "(Index)" << std::endl;
-            if (block->is_leaf()) {
-                Leaf *leaf = Block::into_leaf(block);
-                for (int i = 0; i < leaf->keys.size; i++) {
-                    std::cerr << leaf->keys[i] << "=" << leaf->data[i] << " ";
-                }
-                std::cerr << std::endl;
-            } else {
-                Index *index = Block::into_index(block);
-                for (int i = 0; i < index->keys.size; i++) {
-                    std::cerr << index->keys[i] << " ";
-                }
-                std::cerr << std::endl;
-                for (int i = 0; i < index->children.size; i++) {
-                    std::cerr << index->children[i] << " ";
-                }
-                std::cerr << std::endl;
-                for (int i = 0; i < index->children.size; i++) {
-                    debug(storage->get(index->children[i]));
-                }
-            }
         }
         // Wrapper functions
         V& at(const K& k) {
