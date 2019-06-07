@@ -5,6 +5,6 @@ set(CMAKE_CXX_STANDARD 14)
 
 find_package(Catch2 CONFIG REQUIRED)
 
-add_executable(BPlusTree main.cpp BTree.hpp Container.hpp Persistence.hpp LRU.hpp)
-add_executable(BPlusTreeTest test_main.cpp BTree.hpp BTree_test.cpp Container.hpp Container_test.cpp BTree_Leaf_test.cpp BTree_Index_test.cpp BTree_Storage_test.cpp Persistence_test.cpp LRU_test.cpp)
+add_executable(BPlusTree src/main.cpp src/BTree.hpp src/Container.hpp src/Persistence.hpp src/LRU.hpp)
+add_executable(BPlusTreeTest src/test_main.cpp src/BTree.hpp src/BTree_test.cpp src/Container.hpp src/Container_test.cpp src/BTree_Leaf_test.cpp src/BTree_Index_test.cpp src/BTree_Storage_test.cpp src/Persistence_test.cpp src/LRU_test.cpp)
 target_link_libraries(BPlusTreeTest PRIVATE Catch2::Catch2)

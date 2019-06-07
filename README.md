@@ -12,7 +12,7 @@ LRU: least recently used cache, eliminating memory usage when processing huge ch
 
 Persistence: manage so-called 'pages', which store BTree data.
 
-Not yet ported to upstream https://github.com/peterzheng98/CS158-DS_Project
+Partially ported to upstream https://github.com/peterzheng98/CS158-DS_Project
 
 ## Limitations
 
@@ -20,7 +20,9 @@ Number of pages in memory must be larger than those required for a single search
 
 ## Todo
 
-* Reduce overhead in serialize and deserialize by passing istream as argument
-
-* Reduce page swap overhead by introducing read-only page request
-
+- [x] Reduce overhead in serialize and deserialize by passing istream as argument
+- [ ] Reduce page offload overhead by introducing read-only page request
+- [ ] Use HashMap to store pages in memory to store larger dataset.
+- [ ] Implement copy constructor and assign
+- [ ] Implement iterator and const iterator
+- [ ] Port to upstream: size, empty, iterator, return value of find and insert.
