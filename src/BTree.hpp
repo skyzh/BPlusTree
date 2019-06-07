@@ -12,6 +12,7 @@
 #include <fstream>
 
 template<typename K, typename V,
+        unsigned Max_Page = 1048576,
         unsigned Ord = 2 * 1024 / sizeof(K),
         unsigned Max_Page_In_Memory = 8 * 1024 * 1024 / Ord / sizeof(K) * 1024>
 class BTree {
@@ -39,7 +40,7 @@ public:
 
     class Block;
 
-    using BPersistence = Persistence<Block, Index, Leaf, 1048576, Max_Page_In_Memory>;
+    using BPersistence = Persistence<Block, Index, Leaf, Max_Page, Max_Page_In_Memory>;
 
     struct Block : public Serializable {
         BlockIdx idx;

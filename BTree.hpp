@@ -438,7 +438,7 @@ namespace sjtu {
 
         class Block;
 
-        using BPersistence = Persistence<Block, Index, Leaf, 1048576, Max_Page_In_Memory>;
+        using BPersistence = Persistence<Block, Index, Leaf, 16777216, Max_Page_In_Memory>;
 
         struct Block : public Serializable {
             BlockIdx idx;

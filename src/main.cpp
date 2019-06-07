@@ -16,9 +16,17 @@ void print_clock(const char *message) {
     std::cout << "[" << message << "] " << update_clock() << "s" << std::endl;
 }
 
-BTree<int, int> *m;
+using BigTable = BTree<int, int, 16777216>;
+BigTable *m;
 
-const int test_size = 1e6;
+inline void progress(long long i, long long n, BigTable* t) {
+    if ((i - 1) % (n / 100) == 0) {
+        std::cout << "    [" << i << "/" << n << "] " << i * 100 / n << "%" << std::endl;
+        t->storage->stat.stat();
+    }
+}
+
+const int test_size = 1e8;
 int test_data[test_size];
 
 void generate_test_data() {
@@ -30,10 +38,11 @@ void generate_test_data() {
 }
 
 void test_insert() {
-    m = new BTree<int, int>("data.db");
+    m = new BigTable("data.db");
     update_clock();
     for (int i = 0; i < test_size; i++) {
         m->insert(test_data[i], test_data[i]);
+        progress(i, test_size, m);
     }
     print_clock("Insertion");
     m->storage->stat.stat();
@@ -42,15 +51,17 @@ void test_insert() {
 }
 
 void test_remove() {
-    m = new BTree<int, int>("data.db");
+    m = new BigTable("data.db");
     print_clock("Read");
     for (int i = 0; i < test_size; i++) {
         m->find(test_data[i]);
+        progress(i, test_size, m);
     }
     print_clock("Find");
     m->storage->stat.stat();
     for (int i = 0; i < test_size; i++) {
         m->remove(test_data[i]);
+        progress(i, test_size, m);
     }
     print_clock("Remove");
     m->storage->stat.stat();
@@ -58,7 +69,7 @@ void test_remove() {
 }
 
 void test_no_persistence() {
-    m = new BTree<int, int>;
+    m = new BigTable;
     const int test_size = 1e7;
     update_clock();
     int *test_data = new int[test_size];
