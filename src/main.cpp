@@ -16,7 +16,7 @@ void print_clock(const char *message) {
     std::cout << "[" << message << "] " << update_clock() << "s" << std::endl;
 }
 
-using BigTable = BTree<int, int, 16777216>;
+using BigTable = BTree<int, int>;
 BigTable *m;
 
 inline void progress(long long i, long long n, BigTable* t) {

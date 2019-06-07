@@ -12,9 +12,9 @@
 #include <fstream>
 
 template<typename K, typename V,
-        unsigned Max_Page = 1048576,
         unsigned Ord = 2 * 1024 / sizeof(K),
-        unsigned Max_Page_In_Memory = 8 * 1024 * 1024 / Ord / sizeof(K) * 1024>
+        unsigned Max_Page_In_Memory = 8 * 1024 * 1024 / Ord / sizeof(K) * 1024,
+        unsigned Max_Page = 1048576>
 class BTree {
 public:
     using BlockIdx = unsigned;
