@@ -17,3 +17,10 @@ Not yet ported to upstream https://github.com/peterzheng98/CS158-DS_Project
 ## Limitations
 
 Number of pages in memory must be larger than those required for a single search, because page swapping is done after one operation.
+
+## Todo
+
+* Reduce overhead in serialize and deserialize by passing istream as argument
+
+* Reduce page swap overhead by introducing read-only page request
+

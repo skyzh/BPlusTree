@@ -33,9 +33,9 @@ struct MockLeaf : public MockBlock {
 
     unsigned storage_size() const override { return data.storage_size(); }
 
-    void serialize(char *x) const override { this->data.serialize(x); };
+    void serialize(std::ostream& out) const override { this->data.serialize(out); };
 
-    void deserialize(const char *x) override { this->data.deserialize(x); }
+    void deserialize(std::istream& in) override { this->data.deserialize(in); }
 };
 
 struct MockIndex : public MockLeaf {
@@ -46,9 +46,9 @@ struct MockIndex : public MockLeaf {
 
     unsigned storage_size() const override { return data.storage_size(); }
 
-    void serialize(char *x) const override { this->data.serialize(x); };
+    void serialize(std::ostream& out) const override { this->data.serialize(out); };
 
-    void deserialize(const char *x) override { this->data.deserialize(x); }
+    void deserialize(std::istream& in) override { this->data.deserialize(in); }
 
 };
 

@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <iostream>
 
 #include "Persistence.hpp"
 
@@ -105,14 +106,14 @@ public:
      * Storage Mapping
      * | 8 size | Cap() T x |
      */
-    void serialize(char *memory) const {
-        memcpy(memory, &size, sizeof(size));
-        memcpy(memory + sizeof(size), x, sizeof(T) * capacity());
+    void serialize(std::ostream& out) const {
+        out.write(reinterpret_cast<const char*>(&size), sizeof(size));
+        out.write(reinterpret_cast<const char*>(x), sizeof(T) * capacity());
     };
 
-    void deserialize(const char *memory) {
-        memcpy(&size, memory, sizeof(size));
-        memcpy(x, memory + sizeof(size), sizeof(T) * capacity());
+    void deserialize(std::istream& in) {
+        in.read(reinterpret_cast<char*>(&size), sizeof(size));
+        in.read(reinterpret_cast<char*>(x), sizeof(T) * capacity());
         // WARNING: only applicable to primitive types because no data were constructed!!!
     };
 

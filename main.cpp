@@ -18,7 +18,7 @@ void print_clock(const char *message) {
 
 BTree<int, int> *m;
 
-const int test_size = 1e6;
+const int test_size = 1e7;
 int test_data[test_size];
 
 void generate_test_data() {

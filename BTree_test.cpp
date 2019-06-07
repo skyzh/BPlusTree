@@ -2,6 +2,7 @@
 // Created by Alex Chi on 2019-05-23.
 //
 
+#include <sstream>
 #include "BTree.hpp"
 #include "catch.hpp"
 
@@ -197,18 +198,18 @@ TEST_CASE("BTree", "[BTree]") {
 
 TEST_CASE("Serialize", "[BTree]") {
     SECTION("leaf should be serialized") {
-        char memory[Map::Leaf::Storage_Size()];
+        std::stringstream s;
         {
             Map::Leaf leaf;
             leaf.insert(3, 3);
             leaf.insert(2, 2);
             leaf.insert(1, 1);
             leaf.insert(4, 4);
-            leaf.serialize(memory);
+            leaf.serialize(s);
         }
         {
             Map::Leaf leaf;
-            leaf.deserialize(memory);
+            leaf.deserialize(s);
             REQUIRE(*leaf.find(1) == 1);
             REQUIRE(*leaf.find(2) == 2);
             REQUIRE(*leaf.find(3) == 3);
@@ -218,7 +219,7 @@ TEST_CASE("Serialize", "[BTree]") {
     }
 
     SECTION("index should be serialized") {
-        char memory[Map::Index::Storage_Size()];
+        std::stringstream s;
         {
             Map::Index idx;
             idx.children.append(0);
@@ -226,11 +227,11 @@ TEST_CASE("Serialize", "[BTree]") {
             idx.insert_block(3, 3);
             idx.insert_block(2, 2);
             idx.insert_block(4, 4);
-            idx.serialize(memory);
+            idx.serialize(s);
         }
         {
             Map::Index idx;
-            idx.deserialize(memory);
+            idx.deserialize(s);
             REQUIRE (idx.keys.size == 4);
             REQUIRE (idx.keys[0] == 1);
             REQUIRE (idx.keys[1] == 2);

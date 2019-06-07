@@ -4,6 +4,7 @@
 
 #include <catch.hpp>
 #include "Container.hpp"
+#include <sstream>
 
 struct TestClass {
     static int construct_cnt;
@@ -198,6 +199,7 @@ TEST_CASE("Vector", "[Vector]") {
     }
 
     SECTION("should be serialized") {
+        std::stringstream s;
         const int test_num = 2333;
         using V = Vector<int, test_num>;
         char memory[V::Storage_Size()];
@@ -206,11 +208,11 @@ TEST_CASE("Vector", "[Vector]") {
             for (int i = 0; i < test_num; i++) {
                 data.append(i);
             }
-            data.serialize(memory);
+            data.serialize(s);
         }
         {
             V data;
-            data.deserialize(memory);
+            data.deserialize(s);
             REQUIRE(data.size == test_num);
             for (int i = 0; i < test_num; i++) {
                 REQUIRE (data[i] == i);

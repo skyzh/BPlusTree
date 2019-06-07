@@ -39,7 +39,7 @@ public:
 
     class Block;
 
-    using BPersistence = Persistence<Block, Index, Leaf, 8388608, Max_Page_In_Memory>;
+    using BPersistence = Persistence<Block, Index, Leaf, 1048576, Max_Page_In_Memory>;
 
     struct Block : public Serializable {
         BlockIdx idx;
@@ -217,18 +217,14 @@ public:
          * | 8 size | Order() K keys |
          * | 8 size | Order()+1 BlockIdx children |
          */
-        void serialize(char *x) const override {
-            int blk = 0;
-            this->keys.serialize(x);              // VectorA
-            blk += this->keys.Storage_Size();
-            this->children.serialize(x + blk);    // VectorA + Vector B
+        void serialize(std::ostream& out) const override {
+            this->keys.serialize(out);
+            this->children.serialize(out);
         };
 
-        void deserialize(const char *x) override {
-            int blk = 0;
-            this->keys.deserialize(x);            // VectorA
-            blk += this->keys.Storage_Size();
-            this->children.deserialize(x + blk);  // VectorA + Vector B
+        void deserialize(std::istream& in) override {
+            this->keys.deserialize(in);
+            this->children.deserialize(in);
         };
     };
 
@@ -320,26 +316,19 @@ public:
          * | 8 size | Order() K keys |
          * | 8 size | Order() V data |
          */
-        void serialize(char *x) const override {
-            int blk = 0;
-            memcpy(x, &prev, sizeof(BlockIdx));         // 0
-            blk += sizeof(BlockIdx);
-            memcpy(x + blk, &next, sizeof(BlockIdx));   // 8
-            blk += sizeof(BlockIdx);
-            this->keys.serialize(x + blk);              // 8 + VectorA
-            blk += this->keys.Storage_Size();
-            this->data.serialize(x + blk);              // 8 + VectorA + Vector B
+
+        void serialize(std::ostream& out) const override {
+            out.write(reinterpret_cast<const char*>(&prev), sizeof(prev));
+            out.write(reinterpret_cast<const char*>(&next), sizeof(next));
+            this->keys.serialize(out);
+            this->data.serialize(out);
         };
 
-        void deserialize(const char *x) override {
-            int blk = 0;
-            memcpy(&prev, x, sizeof(BlockIdx));         // 0
-            blk += sizeof(BlockIdx);
-            memcpy(&next, x + blk, sizeof(BlockIdx));   // 8
-            blk += sizeof(BlockIdx);
-            this->keys.deserialize(x + blk);            // 8 + VectorA
-            blk += this->keys.Storage_Size();
-            this->data.deserialize(x + blk);            // 8 + VectorA + Vector B
+        void deserialize(std::istream& in) override {
+            in.read(reinterpret_cast<char*>(&prev), sizeof(prev));
+            in.read(reinterpret_cast<char*>(&next), sizeof(next));
+            this->keys.deserialize(in);
+            this->data.deserialize(in);
         };
     };
 

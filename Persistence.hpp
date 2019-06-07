@@ -14,9 +14,9 @@ class Serializable {
 public:
     virtual unsigned storage_size() const = 0;
 
-    virtual void serialize(char *x) const = 0;
+    virtual void serialize(std::ostream &out) const = 0;
 
-    virtual void deserialize(const char *x) = 0;
+    virtual void deserialize(std::istream &in) = 0;
 
     static constexpr bool is_serializable() { return true; }
 };
@@ -92,14 +92,10 @@ struct Persistence {
     void offload_page(unsigned page_id) {
         if (!path) return;
         Block *page = pages[page_id];
-        unsigned buffer_size = page->storage_size();
-        char *buffer = new char[buffer_size];
-        page->serialize(buffer);
+
         unsigned offset = persistence_index->page_offset[page_id];
         f.seekp(offset, f.beg);
-        f.write(buffer, buffer_size);
-
-        delete[] buffer;
+        page->serialize(f);
 
         delete pages[page_id];
         pages[page_id] = nullptr;
@@ -121,12 +117,8 @@ struct Persistence {
             page = new Leaf;
         else
             page = new Index;
-        unsigned buffer_size = page->storage_size();
-        char *buffer = new char[buffer_size];
         f.seekg(persistence_index->page_offset[page_id], f.beg);
-        f.read(buffer, buffer_size);
-        page->deserialize(buffer);
-        delete[] buffer;
+        page->deserialize(f);
         pages[page_id] = page;
         page->storage = this;
         page->idx = page_id;
