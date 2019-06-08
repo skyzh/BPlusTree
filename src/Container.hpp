@@ -155,7 +155,7 @@ public:
             unsigned probe = low + half;
             unsigned other_low = low + other_half;
             size = half;
-            low = this->x[probe] <= d ? other_low : low;
+            low = this->x[probe] < d || this->x[probe] == d ? other_low : low;
         }
         return low;
     }

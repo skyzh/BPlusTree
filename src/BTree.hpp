@@ -348,7 +348,40 @@ public:
         };
     };
 
-    /*
+    unsigned _size;
+
+    class Iterator {
+        mutable BTree *tree;
+        using BlockIdx = typename BTree::BlockIdx;
+        Leaf *leaf;
+        int pos;
+    public:
+        Iterator(BTree *tree, Leaf *leaf, int pos) : tree(tree), leaf(leaf), pos(pos) {}
+
+        void next() {
+            ++pos;
+            if (pos == leaf->keys.size) {
+                if (leaf->next) {
+                    pos = 0;
+                    leaf = Block::into_leaf(tree->storage->get(leaf->next));
+                }
+            }
+        }
+
+        void prev() {
+            --pos;
+            if (pos < 0) {
+                if (leaf->prev) {
+                    leaf = Block::into_leaf(tree->storage->get(leaf->prev));
+                    pos = leaf->keys.size - 1;
+                }
+            }
+        }
+
+        V &get() {
+            return leaf->data[pos];
+        }
+    };
 
     Iterator begin() {
         Block *blk = root();
@@ -365,7 +398,6 @@ public:
         Leaf *leaf = Block::into_leaf(blk);
         return Iterator(this, leaf, leaf->keys.size);
     }
-     */
 
     BPersistence *storage;
     const char *path;
@@ -378,7 +410,7 @@ public:
         return storage->get(root_idx());
     }
 
-    BTree(const char *path = nullptr) : path(path) {
+    BTree(const char *path = nullptr) : path(path), _size(0) {
         storage = new BPersistence(path);
     }
 
@@ -418,6 +450,7 @@ public:
             root_idx() = idx->idx;
         }
         storage->swap_out_pages();
+        ++_size;
     }
 
     bool remove(const K &k) {
@@ -433,8 +466,13 @@ public:
                 delete prev_root;
             }
         }
+        --_size;
         return true;
     }
+
+    unsigned size() const { return _size; }
+
+    unsigned count(const K& k) { return find(k) ? 1 : 0; }
 
     void debug(Block *block) {
         std::cerr << "Block ID: " << block->idx << " ";
@@ -460,6 +498,18 @@ public:
                 debug(storage->get(index->children[i]));
             }
         }
+    }
+
+    // Wrapper functions
+    V &at(const K &k) {
+        return *find(k);
+    }
+    enum OperationResult{
+        Success, Duplicated, Fail
+    };
+    OperationResult erase(const K &k) {
+        if (remove(k)) return OperationResult::Success;
+        else return OperationResult::Fail;
     }
 };
 
