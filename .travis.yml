@@ -9,7 +9,7 @@ before_script:
   - export CC=gcc-9
   - export CXX=g++-9
   - pushd . && cd ~
-  - if [ ! -d "vcpkg" ] ; then git clone https://github.com/Microsoft/vcpkg.git ; fi
+  - if [ ! -f "vcpkg/bootstrap-vcpkg.sh" ] ; then git clone https://github.com/Microsoft/vcpkg.git ; fi
   - cd vcpkg && ./bootstrap-vcpkg.sh && ./vcpkg install catch2
 script:
   - popd
