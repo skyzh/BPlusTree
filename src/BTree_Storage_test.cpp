@@ -127,8 +127,49 @@ TEST_CASE("Storage", "[Storage]") {
         {
             BigLimitedMap m("persist_long_long.db");
             for (int i = 0; i < test_size; i++) {
+                m.insert(i, i);
+            }
+        }
+        {
+            BigLimitedMap m("persist_long_long.db");
+            for (int i = 0; i < test_size; i++) {
+                REQUIRE (*m.find(i) == i);
+                m.remove(i);
+            }
+        }
+        {
+            BigLimitedMap m("persist_long_long.db");
+            for (int i = 0; i < test_size; i++) {
                 REQUIRE (m.find(i) == nullptr);
             }
+        }
+        remove("persist_long_long.db");
+    }
+
+
+    SECTION("should use empty slot") {
+        const int test_size = 100000;
+        remove("persist_long_long.db");
+        {
+            BigLimitedMap m("persist_long_long.db");
+            for (int i = 0; i < test_size; i++) {
+                m.insert(i, i);
+            }
+            unsigned long lst_page_use = 0;
+            for (int i = 0; i < m.MaxPage(); i++) {
+                if (m.storage->pages[i] != nullptr)
+                    lst_page_use = std::max(lst_page_use, m.storage->persistence_index->page_offset[i]);
+            }
+            for (int i = 0; i < test_size; i++) m.remove(i);
+            for (int i = 0; i < test_size; i++) m.insert(i, i);
+            for (int i = 0; i < test_size; i++) m.remove(i);
+            for (int i = 0; i < test_size; i++) m.insert(i, i);
+            unsigned long _lst_page_use = 0;
+            for (int i = 0; i < m.MaxPage(); i++) {
+                if (m.storage->pages[i] != nullptr)
+                    _lst_page_use = std::max(_lst_page_use, m.storage->persistence_index->page_offset[i]);
+            }
+            REQUIRE(_lst_page_use - lst_page_use <= 1000);
         }
         remove("persist_long_long.db");
     }

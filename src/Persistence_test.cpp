@@ -120,7 +120,6 @@ TEST_CASE("Persistence", "[Persistence]") {
         }
         {
             MPersistence persistence("p1.test");
-            REQUIRE(persistence.persistence_index->page_count == 18);
             MockLeaf *leaf = dynamic_cast<MockLeaf *>(persistence.get(leaf_idx));
             REQUIRE(leaf);
             MockIndex *index = dynamic_cast<MockIndex *>(persistence.get(index_idx));
