@@ -2,8 +2,8 @@
 // Created by Alex Chi on 2019-06-08.
 //
 
+#include <catch.hpp>
 #include "BTree.hpp"
-#include "catch.hpp"
 #include <cstdio>
 
 using Map = BTree<int, int, 256, 8>;

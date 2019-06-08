@@ -3,12 +3,17 @@
 //
 
 #include <sstream>
+#include <catch.hpp>
 #include "BTree.hpp"
-#include "catch.hpp"
 
 using Map = BTree<int, int, 4, 65536>;
 
 TEST_CASE("BTree", "[BTree]") {
+    SECTION("should use unit test settings") {
+        BTree<int, int> t;
+        REQUIRE (t.MaxPage() == 1048576);
+    }
+
     SECTION("should insert and find") {
         Map m;
         m.insert(3, 3);

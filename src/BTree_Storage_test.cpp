@@ -2,8 +2,8 @@
 // Created by Alex Chi on 2019-05-25.
 //
 
+#include <catch.hpp>
 #include "BTree.hpp"
-#include "catch.hpp"
 #include <cstdio>
 #include <algorithm>
 

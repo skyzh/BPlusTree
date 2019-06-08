@@ -2,7 +2,7 @@
 // Created by Alex Chi on 2019-05-30.
 //
 
-#include "catch.hpp"
+#include <catch.hpp>
 #include <cstdio>
 #include "Persistence.hpp"
 #include "LRU.hpp"

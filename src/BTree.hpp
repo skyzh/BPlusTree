@@ -27,10 +27,21 @@ constexpr unsigned Default_Max_Page_In_Memory() {
     return 2 * 1024 * 1024 / Default_Ord<K>() / sizeof(K) * 1024;
 }
 
+// if unit test is enabled
+#ifdef REQUIRE
+constexpr unsigned Default_Max_Pages() {
+    return 1048576;
+}
+#else
+constexpr unsigned Default_Max_Pages() {
+    return 16777216;
+}
+#endif
+
 template<typename K, typename V,
         unsigned Ord = Default_Ord<K>(),
         unsigned Max_Page_In_Memory = Default_Max_Page_In_Memory<K>(),
-        unsigned Max_Page = 1048576>
+        unsigned Max_Page = Default_Max_Pages()>
 class BTree {
 public:
     static constexpr unsigned MaxPageInMemory() { return Max_Page_In_Memory; }
