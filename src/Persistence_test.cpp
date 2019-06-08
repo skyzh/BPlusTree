@@ -33,9 +33,9 @@ struct MockLeaf : public MockBlock {
 
     unsigned storage_size() const override { return data.storage_size(); }
 
-    void serialize(std::ostream& out) const override { this->data.serialize(out); };
+    void serialize(std::ostream &out) const override { this->data.serialize(out); };
 
-    void deserialize(std::istream& in) override { this->data.deserialize(in); }
+    void deserialize(std::istream &in) override { this->data.deserialize(in); }
 };
 
 struct MockIndex : public MockLeaf {
@@ -46,13 +46,13 @@ struct MockIndex : public MockLeaf {
 
     unsigned storage_size() const override { return data.storage_size(); }
 
-    void serialize(std::ostream& out) const override { this->data.serialize(out); };
+    void serialize(std::ostream &out) const override { this->data.serialize(out); };
 
-    void deserialize(std::istream& in) override { this->data.deserialize(in); }
+    void deserialize(std::istream &in) override { this->data.deserialize(in); }
 
 };
 
-MockLeaf* make_leaf() {
+MockLeaf *make_leaf() {
     MockLeaf *leaf = new MockLeaf;
     for (int i = 0; i < leaf->data.capacity(); i++) leaf->data.append(i);
     return leaf;
@@ -61,12 +61,12 @@ MockLeaf* make_leaf() {
 TEST_CASE("Persistence", "[Persistence]") {
     SECTION("should occupy storage") {
         MPersistence persistence;
-        MockLeaf* leaf1 = make_leaf();
+        MockLeaf *leaf1 = make_leaf();
         persistence.record(leaf1);
         REQUIRE (leaf1->storage == &persistence);
         unsigned idx = leaf1->idx;
         persistence.offload_page(idx);
-        leaf1 = dynamic_cast<MockLeaf*>(persistence.get(idx));
+        leaf1 = dynamic_cast<MockLeaf *>(persistence.get(idx));
         REQUIRE (leaf1->storage == &persistence);
     }
 
@@ -166,5 +166,14 @@ TEST_CASE("Persistence", "[Persistence]") {
         persistence.swap_out_pages();
         REQUIRE(persistence.stat.swap_out == 4);
         remove("p_swap.test");
+    }
+
+    SECTION("should align to 4k") {
+        MPersistence persistence("p_swap.test");
+        for (int i = 0; i < 20000; i++) {
+            ssize_t aligned = persistence.align_to_4k(i);
+            REQUIRE(aligned % (4 * 1024) == 0);
+            REQUIRE(aligned >= i);
+        }
     }
 }

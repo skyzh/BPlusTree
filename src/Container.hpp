@@ -13,7 +13,13 @@
 
 template<typename U>
 struct Allocator {
-    U *allocate(unsigned size) { return (U *) ::operator new(sizeof(U) * size); }
+    U *allocate(unsigned size) {
+#ifdef __clang__
+        return (U *) ::operator new(sizeof(U) * size);
+#else
+        return (U *) ::operator new(sizeof(U) * size, (std::align_val_t) (4 * 1024));
+#endif
+    }
 
     void deallocate(U *x) { ::operator delete(x); }
 

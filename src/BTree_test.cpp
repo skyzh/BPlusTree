@@ -194,6 +194,15 @@ TEST_CASE("BTree", "[BTree]") {
         }
         delete[] test_data;
     }
+
+    SECTION("should align key to 4K") {
+        using BTreeInt = BTree<int, int>;
+        using BTreeLong = BTree<long long, int>;
+        using BTreeChar = BTree<char, int>;
+        CHECK (BTreeInt::Index::Storage_Size() <= 4 * 1024);
+        CHECK (BTreeLong::Index::Storage_Size() <= 4 * 1024);
+        CHECK (BTreeChar::Index::Storage_Size() <= 4 * 1024);
+    }
 }
 
 TEST_CASE("Serialize", "[BTree]") {

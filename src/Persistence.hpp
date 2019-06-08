@@ -33,8 +33,8 @@ struct Persistence {
         unsigned magic_key;
         unsigned version;
         unsigned page_count;
-        unsigned tail_pos;
-        unsigned page_offset[MAX_PAGES];
+        size_t tail_pos;
+        size_t page_offset[MAX_PAGES];
         bool is_leaf[MAX_PAGES];
 
         static unsigned constexpr MAGIC_KEY() {
@@ -54,20 +54,20 @@ struct Persistence {
     Block **pages;
 
     struct Stat {
-        unsigned create;
-        unsigned destroy;
-        unsigned access_cache_hit;
-        unsigned access_cache_miss;
-        unsigned request_write;
-        unsigned request_read;
-        unsigned swap_out;
+        long long create;
+        long long destroy;
+        long long access_cache_hit;
+        long long access_cache_miss;
+        long long request_write;
+        long long request_read;
+        long long swap_out;
 
         void stat() {
-            printf("    access hit/total %d/%d %.5f%%\n",
+            printf("    access hit/total %lld/%lld %.5f%%\n",
                    access_cache_hit,
                    access_cache_miss + access_cache_hit,
                    double(access_cache_hit) / (access_cache_miss + access_cache_hit) * 100);
-            printf("    create/destroy/swap_in/out %d %d %d %d\n", create, destroy, access_cache_miss, swap_out);
+            printf("    create/destroy/swap_in/out %lld %lld %lld %lld\n", create, destroy, access_cache_miss, swap_out);
         }
 
         Stat() : create(0), destroy(0),
@@ -93,7 +93,7 @@ struct Persistence {
         if (!path) return;
         Block *page = pages[page_id];
 
-        unsigned offset = persistence_index->page_offset[page_id];
+        auto offset = persistence_index->page_offset[page_id];
         f.seekp(offset, f.beg);
         page->serialize(f);
 
@@ -161,10 +161,14 @@ struct Persistence {
         return load_page(page_id);
     }
 
+    ssize_t align_to_4k(ssize_t offset) {
+        return (offset + 0xfff) & (~0xfff);
+    }
+
     void create_page(Block *block) {
-        unsigned offset = persistence_index->tail_pos;
+        auto offset = align_to_4k(persistence_index->tail_pos);
         unsigned page_id = persistence_index->page_count++;
-        persistence_index->tail_pos += block->storage_size();
+        persistence_index->tail_pos = offset + block->storage_size();
         block->idx = page_id;
         pages[page_id] = block;
         persistence_index->is_leaf[page_id] = block->is_leaf();

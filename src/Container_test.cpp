@@ -202,7 +202,6 @@ TEST_CASE("Vector", "[Vector]") {
         std::stringstream s;
         const int test_num = 2333;
         using V = Vector<int, test_num>;
-        char memory[V::Storage_Size()];
         {
             V data;
             for (int i = 0; i < test_num; i++) {
@@ -218,6 +217,11 @@ TEST_CASE("Vector", "[Vector]") {
                 REQUIRE (data[i] == i);
             }
         }
+    }
+
+    SECTION("should have correct storage size") {
+        using V = Vector<int, 256>;
+        REQUIRE (V::Storage_Size() == 256 * sizeof(int) + sizeof(unsigned));
     }
 }
 
@@ -267,5 +271,34 @@ TEST_CASE("Set", "[Set]") {
         REQUIRE (s.upper_bound(6) == 4);
         REQUIRE (s.upper_bound(7) == 6);
         REQUIRE (s.upper_bound(8) == 6);
+    }
+}
+
+TEST_CASE("Allocator", "[Allocator][!mayfail]") {
+    SECTION("should align to 4K") {
+        {
+            Allocator<int> alloc;
+            auto addr = alloc.allocate(233);
+            REQUIRE(reinterpret_cast<unsigned long>(addr) % (4 * 1024) == 0);
+            alloc.destruct(addr);
+        }
+        {
+            Allocator<char> alloc;
+            auto addr = alloc.allocate(233);
+            REQUIRE(reinterpret_cast<unsigned long>(addr) % (4 * 1024) == 0);
+            alloc.destruct(addr);
+        }
+        {
+            Allocator<long> alloc;
+            auto addr = alloc.allocate(233);
+            REQUIRE(reinterpret_cast<unsigned long>(addr) % (4 * 1024) == 0);
+            alloc.destruct(addr);
+        }
+        {
+            Allocator<long long> alloc;
+            auto addr = alloc.allocate(233);
+            REQUIRE(reinterpret_cast<unsigned long>(addr) % (4 * 1024) == 0);
+            alloc.destruct(addr);
+        }
     }
 }

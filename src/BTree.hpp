@@ -1,6 +1,6 @@
 //
 // Created by Alex Chi on 2019-05-23.
-//
+//ac
 
 #ifndef BPLUSTREE_BTREE_HPP
 #define BPLUSTREE_BTREE_HPP
@@ -11,12 +11,27 @@
 #include <iostream>
 #include <fstream>
 
+template<typename K>
+constexpr unsigned Default_Ord() {
+    return (4 * 1024 - sizeof(unsigned) * 3) / (sizeof(K) + sizeof(unsigned));
+}
+
+template<typename K>
+constexpr unsigned Default_Max_Page_In_Memory() {
+    // maximum is about 6GB in memory
+    return 3 * 1024 * 1024 / Default_Ord<K>() / sizeof(K) * 1024;
+}
+
 template<typename K, typename V,
-        unsigned Ord = 2 * 1024 / sizeof(K),
-        unsigned Max_Page_In_Memory = 8 * 1024 * 1024 / Ord / sizeof(K) * 1024,
+        unsigned Ord = Default_Ord<K>(),
+        unsigned Max_Page_In_Memory = Default_Max_Page_In_Memory<K>(),
         unsigned Max_Page = 1048576>
 class BTree {
 public:
+    static constexpr unsigned MaxPageInMemory() { return Max_Page_In_Memory; }
+
+    static constexpr unsigned MaxPage() { return Max_Page; }
+
     using BlockIdx = unsigned;
 
     static constexpr unsigned Order() { return Ord; }
