@@ -1,9 +1,10 @@
-language:
-  - cpp
+language: cpp
 dist: xenial
 compiler:
-  - clang
+  - gcc
 before_script:
+  - export CC=gcc-7
+  - export CXX=g++-7
   - pushd .
   - cd ~ && git clone https://github.com/Microsoft/vcpkg.git && cd vcpkg
   - ./bootstrap-vcpkg.sh
@@ -18,4 +19,9 @@ after_success:
 env:
   - BUILD_TYPE=DEBUG
   - BUILD_TYPE=RELEASE
-
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-7
