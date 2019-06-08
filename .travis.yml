@@ -2,13 +2,15 @@ language: cpp
 dist: xenial
 compiler:
   - gcc
+cache:
+  directories:
+    - /home/travis/vcpkg/
 before_script:
-  - export CC=gcc-7
-  - export CXX=g++-7
-  - pushd .
-  - cd ~ && git clone https://github.com/Microsoft/vcpkg.git && cd vcpkg
-  - ./bootstrap-vcpkg.sh
-  - ./vcpkg install catch2
+  - export CC=gcc-9
+  - export CXX=g++-9
+  - pushd . && cd ~
+  - if [ ! -d "vcpkg" ] ; then git clone https://github.com/Microsoft/vcpkg.git ; fi
+  - cd vcpkg && ./bootstrap-vcpkg.sh && ./vcpkg install catch2
 script:
   - popd
   - cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE=~/vcpkg/scripts/buildsystems/vcpkg.cmake
@@ -24,4 +26,4 @@ addons:
     sources:
       - ubuntu-toolchain-r-test
     packages:
-      - g++-7
+      - g++-9

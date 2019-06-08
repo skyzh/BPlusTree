@@ -27,7 +27,7 @@ inline void progress(long long i, long long n, BigTable *t) {
 }
 
 
-const int test_size = 1e7;
+const int test_size = 1e8;
 int test_data[test_size];
 
 void generate_test_data() {
