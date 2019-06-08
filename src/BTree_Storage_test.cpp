@@ -37,6 +37,35 @@ TEST_CASE("Storage", "[Storage]") {
         remove("persist.db");
     }
 
+    SECTION("should persist data when root is offloaded") {
+        remove("persist.db");
+        const int test_size = 16;
+        {
+            Map m("persist.db");
+            for (int i = 0; i < test_size; i++) {
+                if (m.storage->is_loaded((m.root_idx()))) m.storage->offload_page(m.root_idx());
+                m.insert(i, i);
+            }
+        }
+        {
+            Map m("persist.db");
+            for (int i = 0; i < test_size; i++) {
+                if (m.storage->is_loaded((m.root_idx()))) m.storage->offload_page(m.root_idx());
+                REQUIRE (m.find(i));
+                REQUIRE (*m.find(i) == i);
+                m.remove(i);
+            }
+        }
+        {
+            Map m("persist.db");
+            for (int i = 0; i < test_size; i++) {
+                if (m.storage->is_loaded((m.root_idx()))) m.storage->offload_page(m.root_idx());
+                REQUIRE (m.find(i) == nullptr);
+            }
+        }
+        remove("persist.db");
+    }
+
     SECTION("should persist even more data") {
         const int test_size = 100000;
         remove("persist_long_long.db");

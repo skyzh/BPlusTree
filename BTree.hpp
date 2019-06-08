@@ -4,266 +4,325 @@
 #include "exception.hpp"
 #include <map>
 #include <fstream>
+
 namespace sjtu {
+//
+// Created by Alex Chi on 2019-05-30.
+//
 
-    template<unsigned Cap, typename Idx = unsigned>
-    class LRU {
-        struct Node {
-            Idx idx;
-            Node *prev, *next;
+#ifndef BPLUSTREE_LRU_HPP
+#define BPLUSTREE_LRU_HPP
 
-            Node(Idx idx) : idx(idx), prev(nullptr), next(nullptr) {}
-        } *head, *tail;
+#include <cstring>
 
-        void push(Node* ptr) {
-            if (size == 0) { head = tail = ptr; }
-            else {
-                ptr->next = head;
-                head->prev = ptr;
-                head = ptr;
+template<unsigned Cap, typename Idx = unsigned>
+class LRU {
+    struct Node {
+        Idx idx;
+        Node *prev, *next;
+
+        Node(Idx idx) : idx(idx), prev(nullptr), next(nullptr) {}
+    } *head, *tail;
+
+    void push(Node* ptr) {
+        if (size == 0) { head = tail = ptr; }
+        else {
+            ptr->next = head;
+            head->prev = ptr;
+            head = ptr;
+        }
+        ++size;
+    }
+
+    void remove(Node* ptr) {
+        if (ptr->prev) ptr->prev->next = ptr->next; else {
+            head = ptr->next;
+        }
+        if (ptr->next) ptr->next->prev = ptr->prev; else {
+            tail = ptr->prev;
+        }
+        ptr->next = ptr->prev = nullptr;
+        --size;
+    }
+
+public:
+    unsigned size;
+
+    Node** nodes;
+
+    LRU() : head(nullptr), tail(nullptr), size(0) {
+        nodes = new Node*[Cap];
+        memset(nodes, 0, sizeof(Node*) * Cap);
+    }
+
+    ~LRU() {
+        delete[] nodes;
+    }
+
+    void put(Idx idx) {
+        assert(idx < Cap);
+        assert(nodes[idx] == nullptr);
+        Node *ptr = new Node(idx);
+        push(ptr);
+        nodes[idx] = ptr;
+    }
+
+    void get(Idx idx) {
+        assert(idx < Cap);
+        assert(nodes[idx]);
+        remove(nodes[idx]);
+        push(nodes[idx]);
+    }
+
+    Idx expire() {
+        return tail->idx;
+    }
+
+    void remove(Idx idx) {
+        assert(idx < Cap);
+        assert(nodes[idx]);
+        remove(nodes[idx]);
+        delete nodes[idx];
+        nodes[idx] = nullptr;
+    }
+
+    void debug() {
+        unsigned last_idx;
+        for (auto ptr = head; ptr != nullptr; ptr = ptr->next) {
+            if (ptr->idx == last_idx) {
+                std::clog << "Cycle detected!" << std::endl;
+                return;
             }
-            ++size;
+            std::clog << ptr->idx << " ";
+            last_idx = ptr->idx;
+        }
+        std::clog << std::endl;
+    }
+};
+
+#endif //BPLUSTREE_LRU_HPP
+//
+// Created by Alex Chi on 2019-05-29.
+//
+
+#ifndef BPLUSTREE_PERSISTENCE_HPP
+#define BPLUSTREE_PERSISTENCE_HPP
+
+#include <fstream>
+#include <iostream>
+#include <cstring>
+
+class Serializable {
+public:
+    virtual unsigned storage_size() const = 0;
+
+    virtual void serialize(std::ostream &out) const = 0;
+
+    virtual void deserialize(std::istream &in) = 0;
+
+    static constexpr bool is_serializable() { return true; }
+};
+
+template<typename Block, typename Index, typename Leaf, unsigned MAX_PAGES = 1048576, unsigned MAX_IN_MEMORY = 65536>
+struct Persistence {
+    const char *path;
+    std::fstream f;
+
+    static const unsigned VERSION = 5;
+
+    struct PersistenceIndex {
+        unsigned root_idx;
+        unsigned magic_key;
+        unsigned version;
+        unsigned page_count;
+        size_t tail_pos;
+        size_t page_offset[MAX_PAGES];
+        bool is_leaf[MAX_PAGES];
+
+        static unsigned constexpr MAGIC_KEY() {
+            return sizeof(Index) * 233
+                   + sizeof(Leaf) * 23333
+                   + MAX_PAGES * 23;
         }
 
-        void remove(Node* ptr) {
-            if (ptr->prev) ptr->prev->next = ptr->next; else {
-                head = ptr->next;
-            }
-            if (ptr->next) ptr->next->prev = ptr->prev; else {
-                tail = ptr->prev;
-            }
-            ptr->next = ptr->prev = nullptr;
-            --size;
+        PersistenceIndex() : root_idx(0), magic_key(MAGIC_KEY()),
+                             version(VERSION), page_count(16),
+                             tail_pos(sizeof(PersistenceIndex)) {
+            memset(page_offset, 0, sizeof(page_offset));
+            memset(is_leaf, 0, sizeof(is_leaf));
+        }
+    } *persistence_index;
+
+    Block **pages;
+
+    struct Stat {
+        long long create;
+        long long destroy;
+        long long access_cache_hit;
+        long long access_cache_miss;
+        long long request_write;
+        long long request_read;
+        long long swap_out;
+
+        void stat() {
+            printf("    access hit/total %lld/%lld %.5f%%\n",
+                   access_cache_hit,
+                   access_cache_miss + access_cache_hit,
+                   double(access_cache_hit) / (access_cache_miss + access_cache_hit) * 100);
+            printf("    create/destroy/swap_in/out %lld %lld %lld %lld\n", create, destroy, access_cache_miss, swap_out);
         }
 
-    public:
-        unsigned size;
+        Stat() : create(0), destroy(0),
+                 access_cache_hit(1), access_cache_miss(0),
+                 request_read(0), request_write(0), swap_out(0) {}
+    } stat;
 
-        Node** nodes;
+    using BLRU = LRU<MAX_PAGES>;
+    BLRU lru;
 
-        LRU() : head(nullptr), tail(nullptr), size(0) {
-            nodes = new Node*[Cap];
-            memset(nodes, 0, sizeof(Node*) * Cap);
+    void restore() {
+        if (!path) return;
+        f.seekg(0, f.beg);
+        if (!f.read(reinterpret_cast<char *>(persistence_index), sizeof(PersistenceIndex))) {
+            std::clog << "[Warning] failed to restore from " << path << " " << f.gcount() << std::endl;
+            f.clear();
         }
+        assert(persistence_index->version == VERSION);
+        assert(persistence_index->magic_key == PersistenceIndex::MAGIC_KEY());
+    }
 
-        ~LRU() {
-            delete[] nodes;
+    void offload_page(unsigned page_id) {
+        if (!path) return;
+        Block *page = pages[page_id];
+
+        auto offset = persistence_index->page_offset[page_id];
+        f.seekp(offset, f.beg);
+        page->serialize(f);
+
+        delete pages[page_id];
+        pages[page_id] = nullptr;
+
+        lru.remove(page_id);
+    }
+
+    bool is_loaded(unsigned page_id) { return pages[page_id] != nullptr; }
+
+    Block *load_page(unsigned page_id) {
+        if (pages[page_id]) {
+            ++stat.access_cache_hit;
+            lru.get(page_id);
+            return pages[page_id];
         }
+        if (!path) return nullptr;
+        ++stat.access_cache_miss;
+        Block *page;
+        if (!persistence_index->page_offset[page_id]) return nullptr;
+        if (persistence_index->is_leaf[page_id])
+            page = new Leaf;
+        else
+            page = new Index;
+        f.seekg(persistence_index->page_offset[page_id], f.beg);
+        page->deserialize(f);
+        pages[page_id] = page;
+        page->storage = this;
+        page->idx = page_id;
+        lru.put(page_id);
+        return page;
+    }
 
-        void put(Idx idx) {
-            assert(idx < Cap);
-            assert(nodes[idx] == nullptr);
-            Node *ptr = new Node(idx);
-            push(ptr);
-            nodes[idx] = ptr;
+    void save() {
+        if (!path) return;
+        f.seekp(0, f.beg);
+        f.write(reinterpret_cast<char *>(persistence_index), sizeof(PersistenceIndex));
+        for (unsigned i = 0; i < MAX_PAGES; i++) {
+            if (pages[i]) offload_page(i);
         }
+    }
 
-        void get(Idx idx) {
-            assert(idx < Cap);
-            assert(nodes[idx]);
-            remove(nodes[idx]);
-            push(nodes[idx]);
-        }
-
-        Idx expire() {
-            return tail->idx;
-        }
-
-        void remove(Idx idx) {
-            assert(idx < Cap);
-            assert(nodes[idx]);
-            remove(nodes[idx]);
-            delete nodes[idx];
-            nodes[idx] = nullptr;
-        }
-    };
-
-    class Serializable {
-    public:
-        virtual unsigned storage_size() const = 0;
-
-        virtual void serialize(std::ostream &out) const = 0;
-
-        virtual void deserialize(std::istream &in) = 0;
-
-        static constexpr bool is_serializable() { return true; }
-    };
-
-    template<typename Block, typename Index, typename Leaf, unsigned MAX_PAGES = 1048576, unsigned MAX_IN_MEMORY = 65536>
-    struct Persistence {
-        const char *path;
-        std::fstream f;
-
-        static const unsigned VERSION = 5;
-
-        struct PersistenceIndex {
-            unsigned root_idx;
-            unsigned magic_key;
-            unsigned version;
-            unsigned page_count;
-            unsigned tail_pos;
-            unsigned page_offset[MAX_PAGES];
-            bool is_leaf[MAX_PAGES];
-
-            static unsigned constexpr MAGIC_KEY() {
-                return sizeof(Index) * 233
-                       + sizeof(Leaf) * 23333
-                       + MAX_PAGES * 23;
-            }
-
-            PersistenceIndex() : root_idx(0), magic_key(MAGIC_KEY()),
-                                 version(VERSION), page_count(16),
-                                 tail_pos(sizeof(PersistenceIndex)) {
-                memset(page_offset, 0, sizeof(page_offset));
-                memset(is_leaf, 0, sizeof(is_leaf));
-            }
-        } *persistence_index;
-
-        Block **pages;
-
-        struct Stat {
-            unsigned create;
-            unsigned destroy;
-            unsigned access_cache_hit;
-            unsigned access_cache_miss;
-            unsigned request_write;
-            unsigned request_read;
-            unsigned swap_out;
-
-            void stat() {
-                printf("    access hit/total %d/%d %.5f%%\n",
-                       access_cache_hit,
-                       access_cache_miss + access_cache_hit,
-                       double(access_cache_hit) / (access_cache_miss + access_cache_hit) * 100);
-                printf("    create/destroy/swap_in/out %d %d %d %d\n", create, destroy, access_cache_miss, swap_out);
-            }
-
-            Stat() : create(0), destroy(0),
-                     access_cache_hit(1), access_cache_miss(0),
-                     request_read(0), request_write(0), swap_out(0) {}
-        } stat;
-
-        using BLRU = LRU<MAX_PAGES>;
-        BLRU lru;
-
-        void restore() {
-            if (!path) return;
-            f.seekg(0, f.beg);
-            if (!f.read(reinterpret_cast<char *>(persistence_index), sizeof(PersistenceIndex))) {
-                f.clear();
-            }
-            assert(persistence_index->version == VERSION);
-            assert(persistence_index->magic_key == PersistenceIndex::MAGIC_KEY());
-        }
-
-        void offload_page(unsigned page_id) {
-            if (!path) return;
-            Block *page = pages[page_id];
-
-            unsigned offset = persistence_index->page_offset[page_id];
-            f.seekp(offset, f.beg);
-            page->serialize(f);
-
-            delete pages[page_id];
-            pages[page_id] = nullptr;
-
-            lru.remove(page_id);
-        }
-
-        Block *load_page(unsigned page_id) {
-            if (pages[page_id]) {
-                ++stat.access_cache_hit;
-                lru.get(page_id);
-                return pages[page_id];
-            }
-            if (!path) return nullptr;
-            ++stat.access_cache_miss;
-            Block *page;
-            if (!persistence_index->page_offset[page_id]) return nullptr;
-            if (persistence_index->is_leaf[page_id])
-                page = new Leaf;
+    Persistence(const char *path = nullptr) : path(path) {
+        assert(Index::is_serializable());
+        assert(Leaf::is_serializable());
+        persistence_index = new PersistenceIndex;
+        pages = new Block *[MAX_PAGES];
+        memset(pages, 0, sizeof(Block *) * MAX_PAGES);
+        if (path) {
+            f.open(path, std::ios::in | std::ios::out | std::ios::ate | std::ios::binary);
+            if (f)
+                restore();
             else
-                page = new Index;
-            f.seekg(persistence_index->page_offset[page_id], f.beg);
-            page->deserialize(f);
-            pages[page_id] = page;
-            page->storage = this;
-            page->idx = page_id;
-            lru.put(page_id);
-            return page;
+                f.open(path, std::ios::in | std::ios::out | std::ios::trunc | std::ios::binary);
         }
+    }
 
-        void save() {
-            if (!path) return;
-            f.seekp(0, f.beg);
-            f.write(reinterpret_cast<char *>(persistence_index), sizeof(PersistenceIndex));
-            for (unsigned i = 0; i < MAX_PAGES; i++) {
-                if (pages[i]) offload_page(i);
-            }
-        }
+    ~Persistence() {
+        save();
+        f.close();
+        delete[] pages;
+        delete persistence_index;
+    }
 
-        Persistence(const char *path = nullptr) : path(path) {
-            assert(Index::is_serializable());
-            assert(Leaf::is_serializable());
-            persistence_index = new PersistenceIndex;
-            pages = new Block *[MAX_PAGES];
-            memset(pages, 0, sizeof(Block *) * MAX_PAGES);
-            if (path) {
-                f.open(path, std::ios::in | std::ios::out | std::ios::ate | std::ios::binary);
-                if (f)
-                    restore();
-                else
-                    f.open(path, std::ios::in | std::ios::out | std::ios::trunc | std::ios::binary);
-            }
-        }
+    Block *get(unsigned page_id) {
+        return load_page(page_id);
+    }
 
-        ~Persistence() {
-            save();
-            f.close();
-            delete[] pages;
-            delete persistence_index;
-        }
+    ssize_t align_to_4k(ssize_t offset) {
+        return (offset + 0xfff) & (~0xfff);
+    }
 
-        Block *get(unsigned page_id) {
-            return load_page(page_id);
-        }
+    void create_page(Block *block) {
+        auto offset = align_to_4k(persistence_index->tail_pos);
+        unsigned page_id = persistence_index->page_count++;
+        persistence_index->tail_pos = offset + block->storage_size();
+        block->idx = page_id;
+        pages[page_id] = block;
+        persistence_index->is_leaf[page_id] = block->is_leaf();
+        persistence_index->page_offset[page_id] = offset;
+        lru.put(page_id);
+    }
 
-        void create_page(Block *block) {
-            unsigned offset = persistence_index->tail_pos;
-            unsigned page_id = persistence_index->page_count++;
-            persistence_index->tail_pos += block->storage_size();
-            block->idx = page_id;
-            pages[page_id] = block;
-            persistence_index->is_leaf[page_id] = block->is_leaf();
-            persistence_index->page_offset[page_id] = offset;
-            lru.put(page_id);
+    void swap_out_pages() {
+        while (lru.size > MAX_IN_MEMORY) {
+            unsigned idx = lru.expire();
+            offload_page(idx);
+            ++stat.swap_out;
         }
+    }
 
-        void swap_out_pages() {
-            while (lru.size > MAX_IN_MEMORY) {
-                unsigned idx = lru.expire();
-                offload_page(idx);
-                ++stat.swap_out;
-            }
-        }
+    void record(Block *block) {
+        create_page(block);
+        block->storage = this;
+        ++stat.create;
+    }
 
-        void record(Block *block) {
-            create_page(block);
-            block->storage = this;
-            ++stat.create;
-        }
+    void deregister(Block *block) {
+        lru.remove(block->idx);
+        pages[block->idx] = nullptr;
+        block->idx = 0;
+        ++stat.destroy;
+    }
+};
 
-        void deregister(Block *block) {
-            lru.remove(block->idx);
-            pages[block->idx] = nullptr;
-            block->idx = 0;
-            ++stat.destroy;
-        }
-    };
+#endif //BPLUSTREE_PERSISTENCE_HPP
+//
+// Created by Alex Chi on 2019-05-24.
+//
+
+#ifndef BPLUSTREE_CONTAINER_HPP
+#define BPLUSTREE_CONTAINER_HPP
+
+#include <cassert>
+#include <cstring>
+#include <iostream>
 
     template<typename U>
     struct Allocator {
-        U *allocate(unsigned size) { return (U *) ::operator new(sizeof(U) * size); }
+        U *allocate(unsigned size) {
+#ifdef __clang__
+            return (U *) ::operator new(sizeof(U) * size);
+#else
+            return (U *) ::operator new(sizeof(U) * size, (std::align_val_t) (4 * 1024));
+#endif
+        }
 
         void deallocate(U *x) { ::operator delete(x); }
 
@@ -352,18 +411,19 @@ namespace sjtu {
         }
 
         unsigned storage_size() const { return Storage_Size(); };
+
         /*
          * Storage Mapping
          * | 8 size | Cap() T x |
          */
-        void serialize(std::ostream& out) const {
-            out.write(reinterpret_cast<const char*>(&size), sizeof(size));
-            out.write(reinterpret_cast<const char*>(x), sizeof(T) * capacity());
+        void serialize(std::ostream &out) const {
+            out.write(reinterpret_cast<const char *>(&size), sizeof(size));
+            out.write(reinterpret_cast<const char *>(x), sizeof(T) * capacity());
         };
 
-        void deserialize(std::istream& in) {
-            in.read(reinterpret_cast<char*>(&size), sizeof(size));
-            in.read(reinterpret_cast<char*>(x), sizeof(T) * capacity());
+        void deserialize(std::istream &in) {
+            in.read(reinterpret_cast<char *>(&size), sizeof(size));
+            in.read(reinterpret_cast<char *>(x), sizeof(T) * capacity());
             // WARNING: only applicable to primitive types because no data were constructed!!!
         };
 
@@ -375,7 +435,7 @@ namespace sjtu {
     template<typename T, unsigned Cap>
     class Set : public Vector<T, Cap> {
     public:
-        unsigned lower_bound(const T &d) {
+        unsigned bin_lower_bound(const T &d) {
             // https://academy.realm.io/posts/how-we-beat-cpp-stl-binary-search/
             unsigned low = 0, size = this->size;
             while (size > 0) {
@@ -389,7 +449,7 @@ namespace sjtu {
             return low;
         }
 
-        unsigned upper_bound(const T &d) {
+        unsigned bin_upper_bound(const T &d) {
             // https://academy.realm.io/posts/how-we-beat-cpp-stl-binary-search/
             unsigned low = 0, size = this->size;
             while (size > 0) {
@@ -403,6 +463,24 @@ namespace sjtu {
             return low;
         }
 
+        unsigned linear_upper_bound(const T &d) {
+            for (unsigned i = 0; i < this->size; i++) {
+                if (this->x[i] > d) return i;
+            }
+            return this->size;
+        }
+
+        unsigned linear_lower_bound(const T &d) {
+            for (unsigned i = 0; i < this->size; i++) {
+                if (this->x[i] >= d) return i;
+            }
+            return this->size;
+        }
+
+        unsigned upper_bound(const T &d) { return bin_upper_bound(d); }
+
+        unsigned lower_bound(const T &d) { return bin_lower_bound(d); }
+
         unsigned insert(const T &d) {
             unsigned pos = upper_bound(d);
             Vector<T, Cap>::insert(pos, d);
@@ -410,11 +488,29 @@ namespace sjtu {
         }
     };
 
+#endif //BPLUSTREE_CONTAINER_HPP
+
+    template<typename K>
+    constexpr unsigned Default_Ord() {
+        return (4 * 1024 - sizeof(unsigned) * 3) / (sizeof(K) + sizeof(unsigned));
+    }
+
+    template<typename K>
+    constexpr unsigned Default_Max_Page_In_Memory() {
+        // maximum is about 6GB in memory
+        return 3 * 1024 * 1024 / Default_Ord<K>() / sizeof(K) * 1024;
+    }
+
     template<typename K, typename V,
-            unsigned Ord = 2 * 1024 / sizeof(K),
-            unsigned Max_Page_In_Memory = 8 * 1024 * 1024 / Ord / sizeof(K) * 1024>
+            unsigned Ord = Default_Ord<K>(),
+            unsigned Max_Page_In_Memory = Default_Max_Page_In_Memory<K>(),
+            unsigned Max_Page = 1048576>
     class BTree {
     public:
+        static constexpr unsigned MaxPageInMemory() { return Max_Page_In_Memory; }
+
+        static constexpr unsigned MaxPage() { return Max_Page; }
+
         using BlockIdx = unsigned;
 
         static constexpr unsigned Order() { return Ord; }
@@ -438,7 +534,7 @@ namespace sjtu {
 
         class Block;
 
-        using BPersistence = Persistence<Block, Index, Leaf, 16777216, Max_Page_In_Memory>;
+        using BPersistence = Persistence<Block, Index, Leaf, Max_Page, Max_Page_In_Memory>;
 
         struct Block : public Serializable {
             BlockIdx idx;
@@ -731,65 +827,47 @@ namespace sjtu {
             };
         };
 
-        class Iterator {
-            BTree *tree;
-            Leaf *leaf;
-            int pos;
-        public:
-            Iterator(BTree *tree, Leaf *leaf, int pos) : tree(tree), leaf(leaf), pos(pos) {}
-
-            void next() {
-                ++pos;
-                if (pos == leaf->keys.size) {
-                    if (leaf->next) {
-                        pos = 0;
-                        leaf = Block::into_leaf(tree->storage->get(leaf->next));
-                    }
-                }
-            }
-
-            void prev() {
-                --pos;
-                if (pos < 0) {
-                    if (leaf->prev) {
-                        leaf = Block::into_leaf(tree->storage->get(leaf->prev));
-                        pos = leaf->keys.size - 1;
-                    }
-                }
-            }
-
-            V &get() {
-                return leaf->data[pos];
-            }
-
-            friend bool operator==(const Iterator& a, const Iterator& b) { return true; }
-        };
+        /*
 
         Iterator begin() {
-            return Iterator(this, nullptr, 0);
+            Block *blk = root();
+            while (!blk->is_leaf()) blk = storage->get(Block::into_index(blk)->children[0]);
+            return Iterator(this, Block::into_leaf(blk), 0);
         }
 
         Iterator end() {
-            return Iterator(this, nullptr, 0);
+            Block *blk = root();
+            while (!blk->is_leaf()) {
+                Index *idx = Block::into_index(blk);
+                blk = storage->get(idx->children[idx->children.size - 1]);
+            }
+            Leaf *leaf = Block::into_leaf(blk);
+            return Iterator(this, leaf, leaf->keys.size);
         }
+         */
 
-        Block *root;
         BPersistence *storage;
         const char *path;
 
-        BTree(const char *path = "persist.db") : root(nullptr), path(path) {
+        unsigned &root_idx() {
+            return storage->persistence_index->root_idx;
+        }
+
+        Block *root() {
+            return storage->get(root_idx());
+        }
+
+        BTree(const char *path = "persist.db") : path(path) {
             storage = new BPersistence(path);
-            root = storage->get(storage->persistence_index->root_idx);
         }
 
         ~BTree() {
-            storage->persistence_index->root_idx = root ? root->idx : 0;
             delete storage;
         }
 
         V *find(const K &k) {
-            if (!root) return nullptr;
-            return root->find(k);
+            if (!root_idx()) return nullptr;
+            return storage->get(root_idx())->find(k);
         }
 
         Leaf *create_leaf() {
@@ -805,9 +883,9 @@ namespace sjtu {
         }
 
         void insert(const K &k, const V &v) {
-            if (!root) root = create_leaf();
-            storage->get(root->idx);
-            root->insert(k, v);
+            if (!root_idx()) root_idx() = create_leaf()->idx;
+            auto root = storage->get(root_idx());
+            storage->get(root_idx())->insert(k, v);
             if (root->should_split()) {
                 K k;
                 Block *next = root->split(k);
@@ -816,20 +894,20 @@ namespace sjtu {
                 idx->children.append(prev->idx);
                 idx->children.append(next->idx);
                 idx->keys.append(k);
-                root = idx;
+                root_idx() = idx->idx;
             }
             storage->swap_out_pages();
         }
 
         bool remove(const K &k) {
-            if (!root) return false;
-            storage->get(root->idx);
-            bool result = root->remove(k);
+            if (!root_idx()) return false;
+            auto root = storage->get(root_idx());
+            bool result = storage->get(root_idx())->remove(k);
             if (!result) return false;
             if (root->keys.size == 0) {
                 if (!root->is_leaf()) {
                     Index *prev_root = Block::into_index(root);
-                    root = storage->get(prev_root->children[0]);
+                    root_idx() = prev_root->children[0];
                     storage->deregister(prev_root);
                     delete prev_root;
                 }
@@ -837,12 +915,13 @@ namespace sjtu {
             return true;
         }
         // Wrapper functions
-        V& at(const K& k) {
+        V &at(const K &k) {
             return *find(k);
         }
 
-        void erase(const K& k) {
-            remove(k);
+        OperationResult erase(const K &k) {
+            if (remove(k)) return OperationResult::Success;
+            else return OperationResult::Fail;
         }
     };
 

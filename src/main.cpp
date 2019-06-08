@@ -20,6 +20,7 @@ using BigTable = BTree<int, int, 512, 1572864, 16777216>;
 BigTable *m;
 
 inline void progress(long long i, long long n, BigTable *t) {
+    if (n <= 10000000) return;
     if ((i + 1) % (n / 100) == 0) {
         std::cout << "    [" << i << "/" << n << "] " << i * 100 / n << "%" << std::endl;
         t->storage->stat.stat();

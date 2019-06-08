@@ -108,18 +108,19 @@ public:
     }
 
     unsigned storage_size() const { return Storage_Size(); };
+
     /*
      * Storage Mapping
      * | 8 size | Cap() T x |
      */
-    void serialize(std::ostream& out) const {
-        out.write(reinterpret_cast<const char*>(&size), sizeof(size));
-        out.write(reinterpret_cast<const char*>(x), sizeof(T) * capacity());
+    void serialize(std::ostream &out) const {
+        out.write(reinterpret_cast<const char *>(&size), sizeof(size));
+        out.write(reinterpret_cast<const char *>(x), sizeof(T) * capacity());
     };
 
-    void deserialize(std::istream& in) {
-        in.read(reinterpret_cast<char*>(&size), sizeof(size));
-        in.read(reinterpret_cast<char*>(x), sizeof(T) * capacity());
+    void deserialize(std::istream &in) {
+        in.read(reinterpret_cast<char *>(&size), sizeof(size));
+        in.read(reinterpret_cast<char *>(x), sizeof(T) * capacity());
         // WARNING: only applicable to primitive types because no data were constructed!!!
     };
 
@@ -131,7 +132,7 @@ public:
 template<typename T, unsigned Cap>
 class Set : public Vector<T, Cap> {
 public:
-    unsigned lower_bound(const T &d) {
+    unsigned bin_lower_bound(const T &d) {
         // https://academy.realm.io/posts/how-we-beat-cpp-stl-binary-search/
         unsigned low = 0, size = this->size;
         while (size > 0) {
@@ -145,7 +146,7 @@ public:
         return low;
     }
 
-    unsigned upper_bound(const T &d) {
+    unsigned bin_upper_bound(const T &d) {
         // https://academy.realm.io/posts/how-we-beat-cpp-stl-binary-search/
         unsigned low = 0, size = this->size;
         while (size > 0) {
@@ -158,6 +159,24 @@ public:
         }
         return low;
     }
+
+    unsigned linear_upper_bound(const T &d) {
+        for (unsigned i = 0; i < this->size; i++) {
+            if (this->x[i] > d) return i;
+        }
+        return this->size;
+    }
+
+    unsigned linear_lower_bound(const T &d) {
+        for (unsigned i = 0; i < this->size; i++) {
+            if (this->x[i] >= d) return i;
+        }
+        return this->size;
+    }
+
+    unsigned upper_bound(const T &d) { return bin_upper_bound(d); }
+
+    unsigned lower_bound(const T &d) { return bin_lower_bound(d); }
 
     unsigned insert(const T &d) {
         unsigned pos = upper_bound(d);

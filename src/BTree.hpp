@@ -348,46 +348,16 @@ public:
         };
     };
 
-    class Iterator {
-        BTree *tree;
-        Leaf *leaf;
-        int pos;
-    public:
-        Iterator(BTree *tree, Leaf *leaf, int pos) : tree(tree), leaf(leaf), pos(pos) {}
-
-        void next() {
-            ++pos;
-            if (pos == leaf->keys.size) {
-                if (leaf->next) {
-                    pos = 0;
-                    leaf = Block::into_leaf(tree->storage->get(leaf->next));
-                }
-            }
-        }
-
-        void prev() {
-            --pos;
-            if (pos < 0) {
-                if (leaf->prev) {
-                    leaf = Block::into_leaf(tree->storage->get(leaf->prev));
-                    pos = leaf->keys.size - 1;
-                }
-            }
-        }
-
-        V &get() {
-            return leaf->data[pos];
-        }
-    };
+    /*
 
     Iterator begin() {
-        Block *blk = root;
+        Block *blk = root();
         while (!blk->is_leaf()) blk = storage->get(Block::into_index(blk)->children[0]);
         return Iterator(this, Block::into_leaf(blk), 0);
     }
 
     Iterator end() {
-        Block *blk = root;
+        Block *blk = root();
         while (!blk->is_leaf()) {
             Index *idx = Block::into_index(blk);
             blk = storage->get(idx->children[idx->children.size - 1]);
@@ -395,24 +365,30 @@ public:
         Leaf *leaf = Block::into_leaf(blk);
         return Iterator(this, leaf, leaf->keys.size);
     }
+     */
 
-    Block *root;
     BPersistence *storage;
     const char *path;
 
-    BTree(const char *path = nullptr) : root(nullptr), path(path) {
+    unsigned &root_idx() {
+        return storage->persistence_index->root_idx;
+    }
+
+    Block *root() {
+        return storage->get(root_idx());
+    }
+
+    BTree(const char *path = nullptr) : path(path) {
         storage = new BPersistence(path);
-        root = storage->get(storage->persistence_index->root_idx);
     }
 
     ~BTree() {
-        storage->persistence_index->root_idx = root ? root->idx : 0;
         delete storage;
     }
 
     V *find(const K &k) {
-        if (!root) return nullptr;
-        return root->find(k);
+        if (!root_idx()) return nullptr;
+        return storage->get(root_idx())->find(k);
     }
 
     Leaf *create_leaf() {
@@ -428,9 +404,9 @@ public:
     }
 
     void insert(const K &k, const V &v) {
-        if (!root) root = create_leaf();
-        storage->get(root->idx);
-        root->insert(k, v);
+        if (!root_idx()) root_idx() = create_leaf()->idx;
+        auto root = storage->get(root_idx());
+        storage->get(root_idx())->insert(k, v);
         if (root->should_split()) {
             K k;
             Block *next = root->split(k);
@@ -439,20 +415,20 @@ public:
             idx->children.append(prev->idx);
             idx->children.append(next->idx);
             idx->keys.append(k);
-            root = idx;
+            root_idx() = idx->idx;
         }
         storage->swap_out_pages();
     }
 
     bool remove(const K &k) {
-        if (!root) return false;
-        storage->get(root->idx);
-        bool result = root->remove(k);
+        if (!root_idx()) return false;
+        auto root = storage->get(root_idx());
+        bool result = storage->get(root_idx())->remove(k);
         if (!result) return false;
         if (root->keys.size == 0) {
             if (!root->is_leaf()) {
                 Index *prev_root = Block::into_index(root);
-                root = storage->get(prev_root->children[0]);
+                root_idx() = prev_root->children[0];
                 storage->deregister(prev_root);
                 delete prev_root;
             }

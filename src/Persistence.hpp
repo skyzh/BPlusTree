@@ -103,6 +103,8 @@ struct Persistence {
         lru.remove(page_id);
     }
 
+    bool is_loaded(unsigned page_id) { return pages[page_id] != nullptr; }
+
     Block *load_page(unsigned page_id) {
         if (pages[page_id]) {
             ++stat.access_cache_hit;

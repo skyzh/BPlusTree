@@ -24,13 +24,13 @@ TEST_CASE("BTree", "[BTree]") {
         m.insert(3, 3);
         m.insert(2, 2);
         m.insert(1, 1);
-        REQUIRE (m.root->is_leaf());
+        REQUIRE (m.root()->is_leaf());
         m.insert(4, 4);
         REQUIRE (*m.find(1) == 1);
         REQUIRE (*m.find(2) == 2);
         REQUIRE (*m.find(3) == 3);
         REQUIRE (*m.find(4) == 4);
-        REQUIRE (!m.root->is_leaf());
+        REQUIRE (!m.root()->is_leaf());
     }
 
     SECTION("should insert and split to 3 levels") {
