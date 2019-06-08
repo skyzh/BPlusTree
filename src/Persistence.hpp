@@ -8,7 +8,9 @@
 #include <fstream>
 #include <iostream>
 #include <cstring>
+#ifndef ONLINE_JUDGE
 #include "LRU.hpp"
+#endif
 
 class Serializable {
 public:
@@ -230,6 +232,7 @@ struct Persistence {
     void deregister(Block *block) {
         lru.remove(block->idx);
         pages[block->idx] = nullptr;
+        dirty[block->idx] = false;
         lst_empty_slot = std::min(lst_empty_slot, block->idx);
         persistence_index->is_leaf[block->idx] = 2;
         block->idx = 0;

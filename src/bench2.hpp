@@ -5,7 +5,7 @@
 #include "benchmark.hpp"
 
 namespace bench2 {
-    const int test_size = 7 * 1e8;
+    const int test_size = 5 * 1e8;
 
     void test_insert() {
         m = new BigTable("data.db");
@@ -24,7 +24,7 @@ namespace bench2 {
         m = new BigTable("data.db");
         print_clock("Read");
         for (int i = 0; i < test_size; i++) {
-            m->find(i);
+            assert(*m->find(i) == i);
             progress(i, test_size, m);
         }
         print_clock("Find");
@@ -40,6 +40,8 @@ namespace bench2 {
 
     void bench_2() {
         update_clock();
+        test_insert();
+        test_remove();
         test_insert();
         test_remove();
     }

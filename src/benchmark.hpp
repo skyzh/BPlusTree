@@ -11,7 +11,7 @@
 #include <ctime>
 #include <algorithm>
 
-using BigTable = BTree<int, int, 512, 1572864, 16777216>;
+using BigTable = BTree<int, int, Default_Ord<int>(), Default_Max_Page_In_Memory<int>(), 16777216>;
 BigTable *m;
 
 

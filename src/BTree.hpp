@@ -10,9 +10,11 @@
 #include <fstream>
 
 #include "utility.hpp"
+#ifndef ONLINE_JUDGE
 #include "Container.hpp"
 #include "Persistence.hpp"
 #include "Iterator.hpp"
+#endif
 
 template<typename K>
 constexpr unsigned Default_Ord() {

@@ -8,8 +8,9 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
-
+#ifndef ONLINE_JUDGE
 #include "Persistence.hpp"
+#endif
 
 #ifdef __clang
 #define ALLOCATOR_DISABLE_MEMORY_ALIGN
