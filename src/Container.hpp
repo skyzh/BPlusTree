@@ -11,10 +11,17 @@
 
 #include "Persistence.hpp"
 
+#ifdef __clang
+#define ALLOCATOR_DISABLE_MEMORY_ALIGN
+#endif
+#ifdef ONLINE_JUDGE
+#define ALLOCATOR_DISABLE_MEMORY_ALIGN
+#endif
+
 template<typename U>
 struct Allocator {
     U *allocate(unsigned size) {
-#ifdef __clang__
+#ifdef ALLOCATOR_DISABLE_MEMORY_ALIGN
         return (U *) ::operator new(sizeof(U) * size);
 #else
         return (U *) ::operator new(sizeof(U) * size, (std::align_val_t) (4 * 1024));
@@ -49,6 +56,11 @@ public:
     Vector(const Vector &) = delete;
 
     T &operator[](unsigned i) {
+        assert(i < size);
+        return x[i];
+    }
+
+    const T &operator[](unsigned i) const {
         assert(i < size);
         return x[i];
     }
@@ -132,7 +144,7 @@ public:
 template<typename T, unsigned Cap>
 class Set : public Vector<T, Cap> {
 public:
-    unsigned bin_lower_bound(const T &d) {
+    unsigned bin_lower_bound(const T &d) const {
         // https://academy.realm.io/posts/how-we-beat-cpp-stl-binary-search/
         unsigned low = 0, size = this->size;
         while (size > 0) {
@@ -146,7 +158,7 @@ public:
         return low;
     }
 
-    unsigned bin_upper_bound(const T &d) {
+    unsigned bin_upper_bound(const T &d) const {
         // https://academy.realm.io/posts/how-we-beat-cpp-stl-binary-search/
         unsigned low = 0, size = this->size;
         while (size > 0) {
@@ -160,23 +172,23 @@ public:
         return low;
     }
 
-    unsigned linear_upper_bound(const T &d) {
+    unsigned linear_upper_bound(const T &d) const {
         for (unsigned i = 0; i < this->size; i++) {
             if (this->x[i] > d) return i;
         }
         return this->size;
     }
 
-    unsigned linear_lower_bound(const T &d) {
+    unsigned linear_lower_bound(const T &d) const {
         for (unsigned i = 0; i < this->size; i++) {
             if (this->x[i] >= d) return i;
         }
         return this->size;
     }
 
-    unsigned upper_bound(const T &d) { return bin_upper_bound(d); }
+    unsigned upper_bound(const T &d) const { return bin_upper_bound(d); }
 
-    unsigned lower_bound(const T &d) { return bin_lower_bound(d); }
+    unsigned lower_bound(const T &d) const { return bin_lower_bound(d); }
 
     unsigned insert(const T &d) {
         unsigned pos = upper_bound(d);

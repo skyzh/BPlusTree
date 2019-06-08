@@ -19,6 +19,12 @@ TEST_CASE("BTree", "[BTree]") {
         REQUIRE (*m.find(3) == 3);
     }
 
+    SECTION("should handle duplicated key") {
+        Map m;
+        m.insert(3, 3);
+        REQUIRE (m.insert(3, 3) == OperationResult::Duplicated);
+    }
+
     SECTION("should insert and split") {
         Map m;
         m.insert(3, 3);
@@ -82,7 +88,7 @@ TEST_CASE("BTree", "[BTree]") {
             REQUIRE (m.remove(test_data[i]));
             for (int j = 0; j < test_size; j++) {
                 int idx = test_data[j];
-                int *query_result = m.find(idx);
+                const int *query_result = m.find(idx);
                 if (j <= i) REQUIRE (query_result == nullptr);
                 else {
                     REQUIRE (query_result);
@@ -110,7 +116,7 @@ TEST_CASE("BTree", "[BTree]") {
             m.remove(test_data[i]);
             if (i % 10000 == 0) {
                 for (int j = 0; j < test_size; j++) {
-                    int *query_result = m.find(test_data[j]);
+                    const int *query_result = m.find(test_data[j]);
                     if (j <= i) REQUIRE(query_result == nullptr);
                     else {
                         REQUIRE(query_result);
@@ -190,7 +196,8 @@ TEST_CASE("BTree", "[BTree]") {
         }
         for (int i = 0; i < test_size; i++) {
             if (i >= threshold) REQUIRE (m.find(test_data[i]) == nullptr);
-            else REQUIRE (*m.find(test_data[i]) == test_data[i]);
+            else
+                REQUIRE (*m.find(test_data[i]) == test_data[i]);
         }
         delete[] test_data;
     }
@@ -252,40 +259,6 @@ TEST_CASE("Serialize", "[BTree]") {
             REQUIRE (idx.children[2] == 2);
             REQUIRE (idx.children[3] == 3);
             REQUIRE (idx.children[4] == 4);
-        }
-    }
-}
-
-TEST_CASE("Iterator", "[BTree]") {
-    SECTION("should get data") {
-        BTree<int, int, 512> m;
-        const int test_size = 100000;
-        int test_data[test_size];
-        for (int i = 0; i < test_size; i++) {
-            m.insert(i, i);
-        }
-        auto iter = m.begin();
-        for (int i = 0; i < test_size; i++) {
-            REQUIRE (iter.get() == i);
-            iter.next();
-        }
-    }
-
-    SECTION("should get data after removal") {
-        BTree<int, int, 512> m;
-        const int test_size = 100000;
-        const int remove_size = 5000;
-        int test_data[test_size];
-        for (int i = 0; i < test_size; i++) {
-            m.insert(i, i);
-        }
-        for (int i = 0; i < remove_size; i++) {
-            m.remove(i);
-        }
-        auto iter = m.begin();
-        for (int i = remove_size; i < test_size; i++) {
-            REQUIRE (iter.get() == i);
-            iter.next();
         }
     }
 }

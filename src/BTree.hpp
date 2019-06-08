@@ -5,11 +5,14 @@
 #ifndef BPLUSTREE_BTREE_HPP
 #define BPLUSTREE_BTREE_HPP
 
-#include "Container.hpp"
-#include "Persistence.hpp"
 #include <cassert>
 #include <iostream>
 #include <fstream>
+
+#include "utility.hpp"
+#include "Container.hpp"
+#include "Persistence.hpp"
+#include "Iterator.hpp"
 
 template<typename K>
 constexpr unsigned Default_Ord() {
@@ -19,7 +22,7 @@ constexpr unsigned Default_Ord() {
 template<typename K>
 constexpr unsigned Default_Max_Page_In_Memory() {
     // maximum is about 6GB in memory
-    return 3 * 1024 * 1024 / Default_Ord<K>() / sizeof(K) * 1024;
+    return 2 * 1024 * 1024 / Default_Ord<K>() / sizeof(K) * 1024;
 }
 
 template<typename K, typename V,
@@ -70,11 +73,11 @@ public:
 
         virtual Block *split(K &split_key) = 0;
 
-        virtual void insert(const K &k, const V &v) = 0;
+        virtual bool insert(const K &k, const V &v) = 0;
 
         virtual bool remove(const K &k) = 0;
 
-        virtual V *find(const K &k) = 0;
+        virtual const V *find(const K &k) const = 0;
 
         bool should_split() const { return keys.size == Order(); }
 
@@ -126,23 +129,25 @@ public:
             this->children.insert(pos + 1, v);
         }
 
-        V *find(const K &k) override {
+        const V *find(const K &k) const override {
             // {left: key < index_key} {right: key >= index_key}
             unsigned pos = this->keys.upper_bound(k);
-            Block *block = this->storage->get(children[pos]);
+            const Block *block = this->storage->read(children[pos]);
             return block->find(k);
         }
 
-        void insert(const K &k, const V &v) override {
+        bool insert(const K &k, const V &v) override {
             // {left: key < index_key} {right: key >= index_key}
             unsigned pos = this->keys.upper_bound(k);
             Block *block = this->storage->get(children[pos]);
-            block->insert(k, v);
+            bool result = block->insert(k, v);
+            if (!result) return false;
             if (block->should_split()) {
                 K k;
                 Block *that = block->split(k);
                 insert_block(k, that->idx);
             }
+            return true;
         };
 
         bool remove(const K &k) override {
@@ -252,7 +257,7 @@ public:
 
         constexpr bool is_leaf() const override { return true; }
 
-        V *find(const K &k) override {
+        const V *find(const K &k) const override {
             unsigned pos = this->keys.lower_bound(k);
             if (pos >= this->keys.size || this->keys[pos] != k)
                 return nullptr;
@@ -260,9 +265,12 @@ public:
                 return &this->data[pos];
         }
 
-        void insert(const K &k, const V &v) override {
-            unsigned pos = this->keys.insert(k);
+        bool insert(const K &k, const V &v) override {
+            unsigned pos = this->keys.lower_bound(k);
+            if (pos < this->keys.size && this->keys[pos] == k) return false;
+            this->keys.insert(k);
             this->data.insert(pos, v);
+            return true;
         }
 
         bool remove(const K &k) override {
@@ -348,79 +356,76 @@ public:
         };
     };
 
-    unsigned _size;
+    using iterator = Iterator<BTree, Block, Leaf, K, V>;
+    using const_iterator = Iterator<const BTree, const Block, const Leaf, const K, const V>;
 
-    class Iterator {
-        mutable BTree *tree;
-        using BlockIdx = typename BTree::BlockIdx;
-        Leaf *leaf;
-        int pos;
-    public:
-        Iterator(BTree *tree, Leaf *leaf, int pos) : tree(tree), leaf(leaf), pos(pos) {}
-
-        void next() {
-            ++pos;
-            if (pos == leaf->keys.size) {
-                if (leaf->next) {
-                    pos = 0;
-                    leaf = Block::into_leaf(tree->storage->get(leaf->next));
-                }
-            }
-        }
-
-        void prev() {
-            --pos;
-            if (pos < 0) {
-                if (leaf->prev) {
-                    leaf = Block::into_leaf(tree->storage->get(leaf->prev));
-                    pos = leaf->keys.size - 1;
-                }
-            }
-        }
-
-        V &get() {
-            return leaf->data[pos];
-        }
-    };
-
-    Iterator begin() {
+    Leaf* get_leaf_begin() const {
         Block *blk = root();
         while (!blk->is_leaf()) blk = storage->get(Block::into_index(blk)->children[0]);
-        return Iterator(this, Block::into_leaf(blk), 0);
+        return Block::into_leaf(blk);
     }
 
-    Iterator end() {
+    Leaf* get_leaf_end() const {
         Block *blk = root();
         while (!blk->is_leaf()) {
             Index *idx = Block::into_index(blk);
             blk = storage->get(idx->children[idx->children.size - 1]);
         }
-        Leaf *leaf = Block::into_leaf(blk);
-        return Iterator(this, leaf, leaf->keys.size);
+        return Block::into_leaf(blk);
     }
 
-    BPersistence *storage;
+    iterator begin() {
+        auto leaf = get_leaf_begin();
+        return iterator(this, leaf->idx, 0);
+    }
+
+    iterator end() {
+        auto leaf = get_leaf_end();
+        return iterator(this, leaf->idx, leaf->keys.size);
+    }
+
+    const_iterator cbegin() const {
+        auto leaf = get_leaf_begin();
+        return const_iterator(this, leaf->idx, 0);
+    }
+
+    const_iterator cend() const {
+        auto leaf = get_leaf_end();
+        return const_iterator(this, leaf->idx, leaf->keys.size);
+    }
+
+    mutable BPersistence *storage;
     const char *path;
 
-    unsigned &root_idx() {
+    unsigned &root_idx() const {
         return storage->persistence_index->root_idx;
     }
 
-    Block *root() {
+    Block *root() const {
         return storage->get(root_idx());
     }
 
-    BTree(const char *path = nullptr) : path(path), _size(0) {
+    BTree(const char *path) : path(path) {
         storage = new BPersistence(path);
     }
+
+#ifdef ONLINE_JUDGE
+    BTree() : BTree("persist.db") {}
+#else
+
+    BTree() : BTree(nullptr) {}
+
+#endif
 
     ~BTree() {
         delete storage;
     }
 
-    V *find(const K &k) {
+    const V *find(const K &k) const {
         if (!root_idx()) return nullptr;
-        return storage->get(root_idx())->find(k);
+        auto v = storage->read(root_idx())->find(k);
+        storage->swap_out_pages();
+        return v;
     }
 
     Leaf *create_leaf() {
@@ -435,10 +440,11 @@ public:
         return block;
     }
 
-    void insert(const K &k, const V &v) {
+    OperationResult insert(const K &k, const V &v) {
         if (!root_idx()) root_idx() = create_leaf()->idx;
         auto root = storage->get(root_idx());
-        storage->get(root_idx())->insert(k, v);
+        bool result = storage->get(root_idx())->insert(k, v);
+        if (!result) return OperationResult::Duplicated;
         if (root->should_split()) {
             K k;
             Block *next = root->split(k);
@@ -449,8 +455,9 @@ public:
             idx->keys.append(k);
             root_idx() = idx->idx;
         }
+        ++storage->persistence_index->size;
         storage->swap_out_pages();
-        ++_size;
+        return OperationResult::Success;
     }
 
     bool remove(const K &k) {
@@ -466,13 +473,14 @@ public:
                 delete prev_root;
             }
         }
-        --_size;
+        --storage->persistence_index->size;
+        storage->swap_out_pages();
         return true;
     }
 
-    unsigned size() const { return _size; }
+    unsigned size() const { return storage->persistence_index->size; }
 
-    unsigned count(const K& k) { return find(k) ? 1 : 0; }
+    unsigned count(const K &k) { return find(k) ? 1 : 0; }
 
     void debug(Block *block) {
         std::cerr << "Block ID: " << block->idx << " ";
@@ -501,12 +509,10 @@ public:
     }
 
     // Wrapper functions
-    V &at(const K &k) {
+    V at(const K &k) const {
         return *find(k);
     }
-    enum OperationResult{
-        Success, Duplicated, Fail
-    };
+
     OperationResult erase(const K &k) {
         if (remove(k)) return OperationResult::Success;
         else return OperationResult::Fail;

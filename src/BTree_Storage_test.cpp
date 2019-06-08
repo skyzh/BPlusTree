@@ -5,6 +5,7 @@
 #include "BTree.hpp"
 #include "catch.hpp"
 #include <cstdio>
+#include <algorithm>
 
 using Map = BTree<int, int, 4, 65536>;
 using BigMap = BTree<int, long long, 512, 65536>;
@@ -33,6 +34,22 @@ TEST_CASE("Storage", "[Storage]") {
             for (int i = 0; i < test_size; i++) {
                 REQUIRE (m.find(i) == nullptr);
             }
+        }
+        remove("persist.db");
+    }
+
+    SECTION("should persist size") {
+        remove("persist.db");
+        const int test_size = 16;
+        {
+            Map m("persist.db");
+            for (int i = 0; i < test_size; i++) {
+                m.insert(i, i);
+            }
+        }
+        {
+            Map m("persist.db");
+            REQUIRE (m.size() == test_size);
         }
         remove("persist.db");
     }

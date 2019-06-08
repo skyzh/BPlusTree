@@ -33,6 +33,7 @@ struct Persistence {
         unsigned magic_key;
         unsigned version;
         unsigned page_count;
+        unsigned size;
         size_t tail_pos;
         size_t page_offset[MAX_PAGES];
         bool is_leaf[MAX_PAGES];
@@ -45,21 +46,22 @@ struct Persistence {
 
         PersistenceIndex() : root_idx(0), magic_key(MAGIC_KEY()),
                              version(VERSION), page_count(16),
-                             tail_pos(sizeof(PersistenceIndex)) {
+                             tail_pos(sizeof(PersistenceIndex)),
+                             size(0) {
             memset(page_offset, 0, sizeof(page_offset));
             memset(is_leaf, 0, sizeof(is_leaf));
         }
     } *persistence_index;
 
     Block **pages;
+    bool* dirty;
 
     struct Stat {
         long long create;
         long long destroy;
         long long access_cache_hit;
         long long access_cache_miss;
-        long long request_write;
-        long long request_read;
+        long long dirty_write;
         long long swap_out;
 
         void stat() {
@@ -67,16 +69,43 @@ struct Persistence {
                    access_cache_hit,
                    access_cache_miss + access_cache_hit,
                    double(access_cache_hit) / (access_cache_miss + access_cache_hit) * 100);
-            printf("    create/destroy/swap_in/out %lld %lld %lld %lld\n", create, destroy, access_cache_miss, swap_out);
+            printf("    create/destroy %lld %lld\n", create, destroy);
+            printf("    swap_in/out/dirty %lld %lld %lld %.5f%%\n",
+                    access_cache_miss, swap_out, dirty_write,
+                   double(dirty_write) / (swap_out) * 100);
         }
 
         Stat() : create(0), destroy(0),
-                 access_cache_hit(1), access_cache_miss(0),
-                 request_read(0), request_write(0), swap_out(0) {}
+                 access_cache_hit(1), access_cache_miss(0), dirty_write(0), swap_out(0) {}
     } stat;
 
     using BLRU = LRU<MAX_PAGES>;
     BLRU lru;
+
+    Persistence(const char *path = nullptr) : path(path) {
+        assert(Index::is_serializable());
+        assert(Leaf::is_serializable());
+        persistence_index = new PersistenceIndex;
+        pages = new Block *[MAX_PAGES];
+        dirty = new bool[MAX_PAGES];
+        memset(pages, 0, sizeof(Block *) * MAX_PAGES);
+        memset(dirty, 0, sizeof(bool) * MAX_PAGES);
+        if (path) {
+            f.open(path, std::ios::in | std::ios::out | std::ios::ate | std::ios::binary);
+            if (f)
+                restore();
+            else
+                f.open(path, std::ios::in | std::ios::out | std::ios::trunc | std::ios::binary);
+        }
+    }
+
+    ~Persistence() {
+        save();
+        f.close();
+        delete[] dirty;
+        delete[] pages;
+        delete persistence_index;
+    }
 
     void restore() {
         if (!path) return;
@@ -93,9 +122,12 @@ struct Persistence {
         if (!path) return;
         Block *page = pages[page_id];
 
-        auto offset = persistence_index->page_offset[page_id];
-        f.seekp(offset, f.beg);
-        page->serialize(f);
+        if (dirty[page_id]) {
+            auto offset = persistence_index->page_offset[page_id];
+            f.seekp(offset, f.beg);
+            page->serialize(f);
+            ++stat.dirty_write;
+        }
 
         delete pages[page_id];
         pages[page_id] = nullptr;
@@ -137,29 +169,12 @@ struct Persistence {
         }
     }
 
-    Persistence(const char *path = nullptr) : path(path) {
-        assert(Index::is_serializable());
-        assert(Leaf::is_serializable());
-        persistence_index = new PersistenceIndex;
-        pages = new Block *[MAX_PAGES];
-        memset(pages, 0, sizeof(Block *) * MAX_PAGES);
-        if (path) {
-            f.open(path, std::ios::in | std::ios::out | std::ios::ate | std::ios::binary);
-            if (f)
-                restore();
-            else
-                f.open(path, std::ios::in | std::ios::out | std::ios::trunc | std::ios::binary);
-        }
-    }
-
-    ~Persistence() {
-        save();
-        f.close();
-        delete[] pages;
-        delete persistence_index;
+    const Block* read(unsigned page_id) {
+        return load_page(page_id);
     }
 
     Block *get(unsigned page_id) {
+        dirty[page_id] = true;
         return load_page(page_id);
     }
 
@@ -176,6 +191,7 @@ struct Persistence {
         persistence_index->is_leaf[page_id] = block->is_leaf();
         persistence_index->page_offset[page_id] = offset;
         lru.put(page_id);
+        dirty[page_id] = true;
     }
 
     void swap_out_pages() {
