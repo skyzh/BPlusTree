@@ -10,10 +10,13 @@
 #include <fstream>
 
 #include "utility.hpp"
+
 #ifndef ONLINE_JUDGE
+
 #include "Container.hpp"
 #include "Persistence.hpp"
 #include "Iterator.hpp"
+
 #endif
 
 template<typename K>
@@ -21,17 +24,19 @@ constexpr unsigned Default_Ord() {
     return (4 * 1024 - sizeof(unsigned) * 3) / (sizeof(K) + sizeof(unsigned));
 }
 
-template<typename K>
+template<typename K, unsigned Ord>
 constexpr unsigned Default_Max_Page_In_Memory() {
     // maximum is about 6GB in memory
-    return 2 * 1024 * 1024 / Default_Ord<K>() / sizeof(K) * 1024;
+    return 2 * 1024 * 1024 / Ord / sizeof(K) * 1024;
 }
 
 // if unit test is enabled
 #ifdef REQUIRE
+
 constexpr unsigned Default_Max_Pages() {
     return 1048576;
 }
+
 #else
 constexpr unsigned Default_Max_Pages() {
     return 16777216;
@@ -40,7 +45,7 @@ constexpr unsigned Default_Max_Pages() {
 
 template<typename K, typename V,
         unsigned Ord = Default_Ord<K>(),
-        unsigned Max_Page_In_Memory = Default_Max_Page_In_Memory<K>(),
+        unsigned Max_Page_In_Memory = Default_Max_Page_In_Memory<K, Ord>(),
         unsigned Max_Page = Default_Max_Pages()>
 class BTree {
 public:
@@ -372,13 +377,17 @@ public:
     using iterator = Iterator<BTree, Block, Leaf, K, V>;
     using const_iterator = Iterator<const BTree, const Block, const Leaf, const K, const V>;
 
-    Leaf* get_leaf_begin() const {
+    BTree(const BTree &) = delete;
+
+    BTree &operator=(const BTree &) = delete;
+
+    Leaf *get_leaf_begin() const {
         Block *blk = root();
         while (!blk->is_leaf()) blk = storage->get(Block::into_index(blk)->children[0]);
         return Block::into_leaf(blk);
     }
 
-    Leaf* get_leaf_end() const {
+    Leaf *get_leaf_end() const {
         Block *blk = root();
         while (!blk->is_leaf()) {
             Index *idx = Block::into_index(blk);
