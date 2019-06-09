@@ -12,9 +12,6 @@
 #include "Persistence.hpp"
 #endif
 
-#ifdef __clang
-#define ALLOCATOR_DISABLE_MEMORY_ALIGN
-#endif
 #ifdef ONLINE_JUDGE
 #define ALLOCATOR_DISABLE_MEMORY_ALIGN
 #endif

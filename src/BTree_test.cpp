@@ -14,14 +14,14 @@ TEST_CASE("BTree", "[BTree]") {
         REQUIRE (t.MaxPage() == 1048576);
     }
 
-    SECTION("should insert and find") {
+    SECTION("should insert and query") {
         Map m;
         m.insert(3, 3);
         m.insert(2, 2);
         m.insert(1, 1);
-        REQUIRE (*m.find(1) == 1);
-        REQUIRE (*m.find(2) == 2);
-        REQUIRE (*m.find(3) == 3);
+        REQUIRE (*m.query(1) == 1);
+        REQUIRE (*m.query(2) == 2);
+        REQUIRE (*m.query(3) == 3);
     }
 
     SECTION("should handle duplicated key") {
@@ -37,10 +37,10 @@ TEST_CASE("BTree", "[BTree]") {
         m.insert(1, 1);
         REQUIRE (m.root()->is_leaf());
         m.insert(4, 4);
-        REQUIRE (*m.find(1) == 1);
-        REQUIRE (*m.find(2) == 2);
-        REQUIRE (*m.find(3) == 3);
-        REQUIRE (*m.find(4) == 4);
+        REQUIRE (*m.query(1) == 1);
+        REQUIRE (*m.query(2) == 2);
+        REQUIRE (*m.query(3) == 3);
+        REQUIRE (*m.query(4) == 4);
         REQUIRE (!m.root()->is_leaf());
     }
 
@@ -50,12 +50,12 @@ TEST_CASE("BTree", "[BTree]") {
             m.insert(i, i);
         }
         for (int i = 1; i <= 20; i++) {
-            REQUIRE(m.find(i));
-            REQUIRE(*m.find(i) == i);
+            REQUIRE(m.query(i));
+            REQUIRE(*m.query(i) == i);
         }
     }
 
-    SECTION("should handle more insert and find") {
+    SECTION("should handle more insert and query") {
         BTree<int, int, 512> m;
         const int test_size = 100000;
         int test_data[test_size];
@@ -70,12 +70,12 @@ TEST_CASE("BTree", "[BTree]") {
             m.insert(test_data[i], test_data[i]);
         }
         for (int i = 0; i < test_size; i++) {
-            REQUIRE(m.find(i));
-            REQUIRE(i == *m.find(i));
+            REQUIRE(m.query(i));
+            REQUIRE(i == *m.query(i));
         }
     }
 
-    SECTION("should remove and find") {
+    SECTION("should remove and query") {
         BTree<int, int> m;
         const int test_size = 16;
         int test_data[test_size];
@@ -93,7 +93,7 @@ TEST_CASE("BTree", "[BTree]") {
             REQUIRE (m.remove(test_data[i]));
             for (int j = 0; j < test_size; j++) {
                 int idx = test_data[j];
-                const int *query_result = m.find(idx);
+                const int *query_result = m.query(idx);
                 if (j <= i) REQUIRE (query_result == nullptr);
                 else {
                     REQUIRE (query_result);
@@ -103,7 +103,7 @@ TEST_CASE("BTree", "[BTree]") {
         }
     }
 
-    SECTION("should handle more remove and find") {
+    SECTION("should handle more remove and query") {
         BTree<int, int, 512> m;
         const int test_size = 100000;
         int test_data[test_size];
@@ -121,7 +121,7 @@ TEST_CASE("BTree", "[BTree]") {
             m.remove(test_data[i]);
             if (i % 10000 == 0) {
                 for (int j = 0; j < test_size; j++) {
-                    const int *query_result = m.find(test_data[j]);
+                    const int *query_result = m.query(test_data[j]);
                     if (j <= i) REQUIRE(query_result == nullptr);
                     else {
                         REQUIRE(query_result);
@@ -132,7 +132,7 @@ TEST_CASE("BTree", "[BTree]") {
         }
     }
 
-    SECTION("should handle more insert and find") {
+    SECTION("should handle more insert and query") {
         BTree<int, int, 2048> m;
         const int test_size = 1000000;
         int *test_data = new int[test_size];
@@ -147,13 +147,13 @@ TEST_CASE("BTree", "[BTree]") {
             m.insert(test_data[i], test_data[i]);
         }
         for (int i = 0; i < test_size; i++) {
-            REQUIRE(m.find(i));
-            REQUIRE(i == *m.find(i));
+            REQUIRE(m.query(i));
+            REQUIRE(i == *m.query(i));
         }
         delete[] test_data;
     }
 
-    SECTION("should handle even more remove and find") {
+    SECTION("should handle even more remove and query") {
         BTree<int, int, 2048> m;
         const int test_size = 1000000;
         int *test_data = new int[test_size];
@@ -171,12 +171,12 @@ TEST_CASE("BTree", "[BTree]") {
             m.remove(test_data[i]);
         }
         for (int i = 0; i < test_size; i++) {
-            REQUIRE (m.find(i) == nullptr);
+            REQUIRE (m.query(i) == nullptr);
         }
         delete[] test_data;
     }
 
-    SECTION("should handle further more insert, remove and find") {
+    SECTION("should handle further more insert, remove and query") {
         BTree<int, int, 2048> m;
         const int test_size = 10000;
         int *test_data = new int[test_size];
@@ -200,9 +200,9 @@ TEST_CASE("BTree", "[BTree]") {
             }
         }
         for (int i = 0; i < test_size; i++) {
-            if (i >= threshold) REQUIRE (m.find(test_data[i]) == nullptr);
+            if (i >= threshold) REQUIRE (m.query(test_data[i]) == nullptr);
             else
-                REQUIRE (*m.find(test_data[i]) == test_data[i]);
+                REQUIRE (*m.query(test_data[i]) == test_data[i]);
         }
         delete[] test_data;
     }
@@ -231,11 +231,11 @@ TEST_CASE("Serialize", "[BTree]") {
         {
             Map::Leaf leaf;
             leaf.deserialize(s);
-            REQUIRE(*leaf.find(1) == 1);
-            REQUIRE(*leaf.find(2) == 2);
-            REQUIRE(*leaf.find(3) == 3);
-            REQUIRE(*leaf.find(4) == 4);
-            REQUIRE(leaf.find(5) == nullptr);
+            REQUIRE(*leaf.query(1) == 1);
+            REQUIRE(*leaf.query(2) == 2);
+            REQUIRE(*leaf.query(3) == 3);
+            REQUIRE(*leaf.query(4) == 4);
+            REQUIRE(leaf.query(5) == nullptr);
         }
     }
 

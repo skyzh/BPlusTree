@@ -32,4 +32,4 @@ Number of pages in memory must be larger than those required for a single search
 - [ ] Implement copy constructor and assign
 - [x] Implement iterator and const iterator
 - [x] Reuse deleted pages
-- [ ] Port to upstream: size, empty, iterator, return value of find and insert.
+- [ ] Port to upstream: size, empty, iterator, return value of query and insert.

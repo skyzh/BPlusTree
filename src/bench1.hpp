@@ -33,7 +33,7 @@ namespace bench1 {
         m = new BigTable("data.db");
         print_clock("Read");
         for (int i = 0; i < test_size; i++) {
-            m->find(test_data[i]);
+            m->query(test_data[i]);
             progress(i, test_size, m);
         }
         print_clock("Find");

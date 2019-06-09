@@ -26,7 +26,7 @@ TEST_CASE("Iterator", "[Iterator]") {
     SECTION("should get data after removal") {
         BTree<int, int, 512> m;
         const int test_size = 100000;
-        const int remove_size = 5000;
+        const int remove_size = 50000;
         int test_data[test_size];
         for (int i = 0; i < test_size; i++) {
             m.insert(i, i);
@@ -75,7 +75,11 @@ TEST_CASE("Iterator", "[Iterator]") {
             REQUIRE (iter3 == iter4);
         }
 
-        --iter1; --iter2; --iter3; --iter4; --i;
+        --iter1;
+        --iter2;
+        --iter3;
+        --iter4;
+        --i;
         for (; iter1 != m.begin();
                --iter1, iter2--, --iter3, iter4--, --i) {
             REQUIRE (*iter1 == i);
@@ -111,7 +115,11 @@ TEST_CASE("Iterator", "[Iterator]") {
                 REQUIRE (iter3 == iter4);
             }
 
-            --iter1; --iter2; --iter3; --iter4; --i;
+            --iter1;
+            --iter2;
+            --iter3;
+            --iter4;
+            --i;
             for (; iter1 != m.begin();
                    --iter1, iter2--, --iter3, iter4--, --i) {
                 REQUIRE (*iter1 == i);
@@ -123,7 +131,7 @@ TEST_CASE("Iterator", "[Iterator]") {
             }
             CHECK(m.storage->stat.swap_out > 10);
             for (int i = 0; i < test_size; i++) {
-                REQUIRE (*m.find(i) == i);
+                REQUIRE (*m.query(i) == i);
             }
         }
 
@@ -145,7 +153,11 @@ TEST_CASE("Iterator", "[Iterator]") {
                 REQUIRE (iter3 == iter4);
             }
 
-            --iter1; --iter2; --iter3; --iter4; --i;
+            --iter1;
+            --iter2;
+            --iter3;
+            --iter4;
+            --i;
             for (; iter1 != m.begin();
                    --iter1, iter2--, --iter3, iter4--, --i) {
                 REQUIRE (*iter1 == i);
@@ -157,11 +169,47 @@ TEST_CASE("Iterator", "[Iterator]") {
             }
             CHECK(m.storage->stat.swap_out > 10);
             for (int i = 0; i < test_size; i++) {
+                REQUIRE (*m.query(i) == i);
                 REQUIRE (*m.find(i) == i);
             }
         }
 
         remove("iterator.test");
+    }
+
+    SECTION("should access data after remove with offload") {
+        remove("iterator.db");
+        const int test_size = 100000;
+        const int remove_size = 50000;
+        int test_data[test_size];
+        for (int i = 0; i < test_size; i++) test_data[i] = i;
+        for (int i = test_size - 1; i > 0; i--) {
+            int j = rand() % (i + 1);
+            std::swap(test_data[i], test_data[j]);
+        }
+        {
+            BTree<int, int, 512> m("iterator.db");
+            for (int i = 0; i < test_size; i++) {
+                m.insert(i, i);
+            }
+        }
+
+        {
+            BTree<int, int, 512> m("iterator.db");
+            for (int i = 0; i < remove_size; i++) {
+                m.remove(test_data[i]);
+            }
+        }
+
+        {
+            BTree<int, int, 512> m("iterator.db");
+            auto iter = m.begin();
+            for (int i = remove_size; i < test_size; i++) {
+                REQUIRE (*m.query(test_data[i]) == test_data[i]);
+                ++iter;
+            }
+        }
+        remove("iterator.db");
     }
 }
 

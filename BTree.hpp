@@ -291,7 +291,7 @@ struct Persistence {
         return load_page(page_id);
     }
 
-    ssize_t align_to_4k(ssize_t offset) {
+    size_t align_to_4k(size_t offset) {
         return (offset + 0xfff) & (~0xfff);
     }
 
@@ -363,9 +363,6 @@ struct Persistence {
 #include "Persistence.hpp"
 #endif
 
-#ifdef __clang
-#define ALLOCATOR_DISABLE_MEMORY_ALIGN
-#endif
 #ifdef ONLINE_JUDGE
 #define ALLOCATOR_DISABLE_MEMORY_ALIGN
 #endif
@@ -578,11 +575,13 @@ public:
         return *this;
     }
 
-    void expire() {
+    void expire() const {
         tree->storage->swap_out_pages();
     }
 
-    Leaf *leaf() { return Block::into_leaf(tree->storage->get(leaf_idx)); }
+    const Leaf *leaf() const { return reinterpret_cast<const Leaf *>(tree->storage->read(leaf_idx)); }
+
+    Leaf *leaf_mut() { return Block::into_leaf(tree->storage->get(leaf_idx)); }
 
     Iterator &operator--() {
         --pos;
@@ -606,9 +605,8 @@ public:
         return _;
     }
 
-    V &operator*() {
-        expire();
-        return leaf()->data[pos];
+    V operator*() {
+        return getValue();
     }
 
     friend bool operator==(const Iterator &a, const Iterator &b) {
@@ -619,6 +617,15 @@ public:
         return !(a == b);
     }
 
+    V getValue() {
+        expire();
+        return leaf_mut()->data[pos];
+    }
+
+    void modify(const V &v) {
+        expire();
+        leaf_mut()->data[pos] = v;
+    }
 };
 
 #endif //BPLUSTREE_ITERATOR_HPP
@@ -645,7 +652,7 @@ public:
 
 template<typename K>
 constexpr unsigned Default_Ord() {
-    return (4 * 1024 - sizeof(unsigned) * 3) / (sizeof(K) + sizeof(unsigned));
+    return std::max((int) ((4 * 1024 - sizeof(unsigned) * 3) / (sizeof(K) + sizeof(unsigned))), 4);
 }
 
 template<typename K, unsigned Ord>
@@ -700,6 +707,7 @@ public:
 
     class Block;
 
+    using LeafPos = pair<BlockIdx, unsigned>;
     using BPersistence = Persistence<Block, Index, Leaf, Max_Page, Max_Page_In_Memory>;
 
     struct Block : public Serializable {
@@ -719,7 +727,9 @@ public:
 
         virtual bool remove(const K &k) = 0;
 
-        virtual const V *find(const K &k) const = 0;
+        virtual const V *query(const K &k) const = 0;
+
+        virtual LeafPos find(const K &k) const = 0;
 
         bool should_split() const { return keys.size == Order(); }
 
@@ -771,8 +781,14 @@ public:
             this->children.insert(pos + 1, v);
         }
 
-        const V *find(const K &k) const override {
+        const V *query(const K &k) const override {
             // {left: key < index_key} {right: key >= index_key}
+            unsigned pos = this->keys.upper_bound(k);
+            const Block *block = this->storage->read(children[pos]);
+            return block->query(k);
+        }
+
+        LeafPos find(const K &k) const override {
             unsigned pos = this->keys.upper_bound(k);
             const Block *block = this->storage->read(children[pos]);
             return block->find(k);
@@ -899,12 +915,18 @@ public:
 
         constexpr bool is_leaf() const override { return true; }
 
-        const V *find(const K &k) const override {
+        const V *query(const K &k) const override {
+            LeafPos pos = this->find(k);
+            if (pos.first == 0) return nullptr;
+            return &this->data[pos.second];
+        }
+
+        LeafPos find(const K &k) const override {
             unsigned pos = this->keys.lower_bound(k);
             if (pos >= this->keys.size || this->keys[pos] != k)
-                return nullptr;
+                return LeafPos(0, 0);
             else
-                return &this->data[pos];
+                return LeafPos(this->idx, pos);
         }
 
         bool insert(const K &k, const V &v) override {
@@ -932,6 +954,11 @@ public:
             assert(this->should_split());
             Leaf *that = new Leaf;
             this->storage->record(that);
+            if (this->next) {
+                Leaf* rr = this->into_leaf(this->storage->get(this->next));
+                rr->prev = that->idx;
+                that->next = rr->idx;
+            }
             this->next = that->idx;
             that->prev = this->idx;
             that->keys.move_from(this->keys, HalfOrder(), HalfOrder());
@@ -942,6 +969,8 @@ public:
 
         K borrow_from_left(Block *_left, const K &) override {
             Leaf *left = this->into_leaf(_left);
+            assert(this->prev == left->idx);
+            assert(left->next == this->idx);
             this->keys.move_insert_from(left->keys, left->keys.size - 1, 1, 0);
             this->data.move_insert_from(left->data, left->data.size - 1, 1, 0);
             return this->keys[0];
@@ -949,6 +978,8 @@ public:
 
         K borrow_from_right(Block *_right, const K &) override {
             Leaf *right = this->into_leaf(_right);
+            assert(this->next == right->idx);
+            assert(right->prev == this->idx);
             this->keys.move_insert_from(right->keys, 0, 1, this->keys.size);
             this->data.move_insert_from(right->data, 0, 1, this->data.size);
             return right->keys[0];
@@ -956,17 +987,29 @@ public:
 
         void merge_with_left(Block *_left, const K &) override {
             Leaf *left = this->into_leaf(_left);
+            assert(this->prev == left->idx);
+            assert(left->next == this->idx);
             this->keys.move_insert_from(left->keys, 0, left->keys.size, 0);
             this->data.move_insert_from(left->data, 0, left->data.size, 0);
             this->prev = left->prev;
+            if (this->prev) {
+                Leaf* ll = this->into_leaf(this->storage->get(this->prev));
+                ll->next = this->idx;
+            }
             this->storage->deregister(left);
         };
 
         void merge_with_right(Block *_right, const K &) override {
             Leaf *right = this->into_leaf(_right);
+            assert(this->next == right->idx);
+            assert(right->prev == this->idx);
             this->keys.move_insert_from(right->keys, 0, right->keys.size, this->keys.size);
             this->data.move_insert_from(right->data, 0, right->data.size, this->data.size);
             this->next = right->next;
+            if (this->next) {
+                Leaf* rr = this->into_leaf(this->storage->get(this->next));
+                rr->prev = this->idx;
+            }
             this->storage->deregister(right);
         };
 
@@ -1067,11 +1110,23 @@ public:
         delete storage;
     }
 
-    const V *find(const K &k) const {
+    V at(const K &k) {
+        return *query(k);
+    }
+
+    const V* query(const K& k) {
         if (!root_idx()) return nullptr;
-        auto v = storage->read(root_idx())->find(k);
+        auto v = storage->read(root_idx())->query(k);
         storage->swap_out_pages();
         return v;
+    }
+
+    iterator find(const K &k) {
+        if (!root_idx()) return end();
+        auto v = storage->read(root_idx())->find(k);
+        storage->swap_out_pages();
+        if (v.first == 0) return end();
+        return iterator(this, v.first, v.second);
     }
 
     Leaf *create_leaf() {
@@ -1126,7 +1181,7 @@ public:
 
     unsigned size() const { return storage->persistence_index->size; }
 
-    unsigned count(const K &k) { return find(k) ? 1 : 0; }
+    unsigned count(const K &k) { return query(k) ? 1 : 0; }
 
     void debug(Block *block) {
         std::cerr << "Block ID: " << block->idx << " ";
@@ -1152,11 +1207,6 @@ public:
                 debug(storage->get(index->children[i]));
             }
         }
-    }
-
-    // Wrapper functions
-    V at(const K &k) const {
-        return *find(k);
     }
 
     OperationResult erase(const K &k) {

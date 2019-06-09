@@ -26,11 +26,13 @@ public:
         return *this;
     }
 
-    void expire() {
+    void expire() const {
         tree->storage->swap_out_pages();
     }
 
-    Leaf *leaf() { return Block::into_leaf(tree->storage->get(leaf_idx)); }
+    const Leaf *leaf() const { return reinterpret_cast<const Leaf *>(tree->storage->read(leaf_idx)); }
+
+    Leaf *leaf_mut() { return Block::into_leaf(tree->storage->get(leaf_idx)); }
 
     Iterator &operator--() {
         --pos;
@@ -54,9 +56,8 @@ public:
         return _;
     }
 
-    V &operator*() {
-        expire();
-        return leaf()->data[pos];
+    V operator*() {
+        return getValue();
     }
 
     friend bool operator==(const Iterator &a, const Iterator &b) {
@@ -67,6 +68,15 @@ public:
         return !(a == b);
     }
 
+    V getValue() {
+        expire();
+        return leaf_mut()->data[pos];
+    }
+
+    void modify(const V &v) {
+        expire();
+        leaf_mut()->data[pos] = v;
+    }
 };
 
 #endif //BPLUSTREE_ITERATOR_HPP

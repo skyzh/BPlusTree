@@ -24,15 +24,15 @@ TEST_CASE("Storage", "[Storage]") {
         {
             Map m("persist.db");
             for (int i = 0; i < test_size; i++) {
-                REQUIRE (m.find(i));
-                REQUIRE (*m.find(i) == i);
+                REQUIRE (m.query(i));
+                REQUIRE (*m.query(i) == i);
                 m.remove(i);
             }
         }
         {
             Map m("persist.db");
             for (int i = 0; i < test_size; i++) {
-                REQUIRE (m.find(i) == nullptr);
+                REQUIRE (m.query(i) == nullptr);
             }
         }
         remove("persist.db");
@@ -68,8 +68,8 @@ TEST_CASE("Storage", "[Storage]") {
             Map m("persist.db");
             for (int i = 0; i < test_size; i++) {
                 if (m.storage->is_loaded((m.root_idx()))) m.storage->offload_page(m.root_idx());
-                REQUIRE (m.find(i));
-                REQUIRE (*m.find(i) == i);
+                REQUIRE (m.query(i));
+                REQUIRE (*m.query(i) == i);
                 m.remove(i);
             }
         }
@@ -77,7 +77,7 @@ TEST_CASE("Storage", "[Storage]") {
             Map m("persist.db");
             for (int i = 0; i < test_size; i++) {
                 if (m.storage->is_loaded((m.root_idx()))) m.storage->offload_page(m.root_idx());
-                REQUIRE (m.find(i) == nullptr);
+                REQUIRE (m.query(i) == nullptr);
             }
         }
         remove("persist.db");
@@ -95,14 +95,14 @@ TEST_CASE("Storage", "[Storage]") {
         {
             BigMap m("persist_long_long.db");
             for (int i = 0; i < test_size; i++) {
-                REQUIRE (*m.find(i) == i);
+                REQUIRE (*m.query(i) == i);
                 m.remove(i);
             }
         }
         {
             BigMap m("persist_long_long.db");
             for (int i = 0; i < test_size; i++) {
-                REQUIRE (m.find(i) == nullptr);
+                REQUIRE (m.query(i) == nullptr);
             }
         }
         remove("persist_long_long.db");
@@ -120,7 +120,7 @@ TEST_CASE("Storage", "[Storage]") {
         {
             BigLimitedMap m("persist_long_long.db");
             for (int i = 0; i < test_size; i++) {
-                REQUIRE (*m.find(i) == i);
+                REQUIRE (*m.query(i) == i);
                 m.remove(i);
             }
         }
@@ -133,14 +133,14 @@ TEST_CASE("Storage", "[Storage]") {
         {
             BigLimitedMap m("persist_long_long.db");
             for (int i = 0; i < test_size; i++) {
-                REQUIRE (*m.find(i) == i);
+                REQUIRE (*m.query(i) == i);
                 m.remove(i);
             }
         }
         {
             BigLimitedMap m("persist_long_long.db");
             for (int i = 0; i < test_size; i++) {
-                REQUIRE (m.find(i) == nullptr);
+                REQUIRE (m.query(i) == nullptr);
             }
         }
         remove("persist_long_long.db");

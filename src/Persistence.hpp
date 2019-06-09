@@ -183,7 +183,7 @@ struct Persistence {
         return load_page(page_id);
     }
 
-    ssize_t align_to_4k(ssize_t offset) {
+    size_t align_to_4k(size_t offset) {
         return (offset + 0xfff) & (~0xfff);
     }
 

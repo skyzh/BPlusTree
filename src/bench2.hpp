@@ -24,7 +24,7 @@ namespace bench2 {
         m = new BigTable("data.db");
         print_clock("Read");
         for (int i = 0; i < test_size; i++) {
-            assert(*m->find(i) == i);
+            assert(*m->query(i) == i);
             progress(i, test_size, m);
         }
         print_clock("Find");
