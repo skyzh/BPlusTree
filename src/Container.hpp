@@ -8,8 +8,11 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+
 #ifndef ONLINE_JUDGE
+
 #include "Persistence.hpp"
+
 #endif
 
 #ifdef ONLINE_JUDGE
@@ -184,9 +187,12 @@ public:
         return this->size;
     }
 
-    unsigned upper_bound(const T &d) const { return bin_upper_bound(d); }
-
-    unsigned lower_bound(const T &d) const { return bin_lower_bound(d); }
+    unsigned upper_bound(const T &d) const {
+        if (Cap >= 16) return bin_upper_bound(d); else return linear_upper_bound(d);
+    }
+    unsigned lower_bound(const T &d) const {
+        if (Cap >= 16) return bin_lower_bound(d); else return linear_lower_bound(d);
+    }
 
     unsigned insert(const T &d) {
         unsigned pos = upper_bound(d);

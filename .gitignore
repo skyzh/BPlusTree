@@ -12,3 +12,5 @@ cmake-build-*/
 Debug/
 Release/
 Bin/
+
+.idea/
